@@ -3,11 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Globe, Users, DollarSign, Shield, ArrowLeft,
-  Loader2, Ban, Trash2, ExternalLink, Check
+  Loader2, Ban, Trash2, ExternalLink, Check, CreditCard
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PaymentSettings from "@/components/admin/PaymentSettings";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -78,11 +79,12 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="subdomains">Subdomains</TabsTrigger>
             <TabsTrigger value="donations">Donations</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -262,6 +264,17 @@ const Admin = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-1">Payment Gateway Settings</h2>
+                <p className="text-muted-foreground">Configure Cashfree payment integration</p>
+              </div>
+              <PaymentSettings />
             </div>
           </TabsContent>
         </Tabs>

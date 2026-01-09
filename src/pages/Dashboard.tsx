@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { 
   Globe, Plus, LogOut, Home, Heart, 
   Copy, Trash2, ExternalLink, Check, Loader2, Shield,
@@ -55,6 +56,13 @@ const Dashboard = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check subdomain limit (5 total)
+    if (subdomains.length >= 5) {
+      toast.error("You've reached the maximum limit of 5 subdomains");
+      return;
+    }
+    
     setIsCreating(true);
     
     // Create with default A record pointing to landing page
@@ -63,6 +71,8 @@ const Dashboard = () => {
     if (result.success) {
       setShowCreateForm(false);
       setSubdomain("");
+      // Navigate to subdomain live page
+      navigate(`/subdomain-live?subdomain=${subdomain}`);
     }
     setIsCreating(false);
   };
@@ -176,7 +186,7 @@ const Dashboard = () => {
 
         <div className="p-6 space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total</span>
@@ -197,6 +207,13 @@ const Dashboard = () => {
                 <Loader2 className="h-4 w-4 text-warning" />
               </div>
               <p className="text-2xl font-semibold mt-1">{subdomains.filter(s => s.status === 'pending').length}</p>
+            </div>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Limit</span>
+                <span className="text-xs text-muted-foreground">Max 5</span>
+              </div>
+              <p className="text-2xl font-semibold mt-1">{subdomains.length}/5</p>
             </div>
           </div>
 
