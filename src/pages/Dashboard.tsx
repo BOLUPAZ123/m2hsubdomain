@@ -4,31 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { 
-  Globe, Plus, LogOut, Home, Heart, 
-  Copy, Trash2, ExternalLink, Check, Loader2, Shield,
-  Settings, ChevronRight, X
-} from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Globe,
+  Plus,
+  LogOut,
+  Home,
+  Heart,
+  Copy,
+  Trash2,
+  ExternalLink,
+  Check,
+  Loader2,
+  Shield,
+  Settings,
+  ChevronRight,
+  X,
+} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
 
-// Default CNAME record for new subdomains - points to the subdomain live page
-const DEFAULT_RECORD_VALUE = "73c81fe2bd0b3f5d.vercel-dns-017.com";
-const DEFAULT_RECORD_TYPE = "CNAME";
+// New (correct - your deployed SubdomainLive page)
+const DEFAULT_RECORD_VALUE = "domainlive.m2hgamerz.site";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const { subdomains, isLoading, createSubdomain, deleteSubdomain, updateSubdomain } = useSubdomains();
-  
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState("");
@@ -36,7 +40,7 @@ const Dashboard = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Edit form state
   const [editRecordType, setEditRecordType] = useState<"A" | "CNAME">("A");
   const [editRecordValue, setEditRecordValue] = useState("");
@@ -56,18 +60,18 @@ const Dashboard = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check subdomain limit (5 total)
     if (subdomains.length >= 5) {
       toast.error("You've reached the maximum limit of 5 subdomains");
       return;
     }
-    
+
     setIsCreating(true);
-    
+
     // Create with default CNAME record pointing to landing page
     const result = await createSubdomain(subdomain, DEFAULT_RECORD_TYPE as "CNAME", DEFAULT_RECORD_VALUE, false);
-    
+
     if (result.success) {
       setShowCreateForm(false);
       setSubdomain("");
@@ -93,10 +97,10 @@ const Dashboard = () => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEditForm) return;
-    
+
     setIsUpdating(true);
     const result = await updateSubdomain(showEditForm, editRecordValue, editProxied);
-    
+
     if (result.success) {
       setShowEditForm(null);
     }
@@ -126,7 +130,7 @@ const Dashboard = () => {
     );
   }
 
-  const editingSubdomain = subdomains.find(s => s.id === showEditForm);
+  const editingSubdomain = subdomains.find((s) => s.id === showEditForm);
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,20 +144,32 @@ const Dashboard = () => {
         </div>
 
         <nav className="p-2 space-y-1">
-          <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-foreground text-sm">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-foreground text-sm"
+          >
             <Home className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
+          <Link
+            to="/profile"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm"
+          >
             <Settings className="h-4 w-4" />
             Profile
           </Link>
-          <Link to="/donation-history" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
+          <Link
+            to="/donation-history"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm"
+          >
             <Heart className="h-4 w-4" />
             Donations
           </Link>
           {isAdmin && (
-            <Link to="/admin" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
+            <Link
+              to="/admin"
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm"
+            >
               <Shield className="h-4 w-4" />
               Admin
             </Link>
@@ -165,7 +181,12 @@ const Dashboard = () => {
             <p className="text-sm font-medium truncate">{profile?.name || "User"}</p>
             <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground"
+            onClick={handleSignOut}
+          >
             <LogOut className="h-4 w-4" />
             Sign out
           </Button>
@@ -203,14 +224,14 @@ const Dashboard = () => {
                 <span className="text-sm text-muted-foreground">Active</span>
                 <Check className="h-4 w-4 text-success" />
               </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter(s => s.status === 'active').length}</p>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "active").length}</p>
             </div>
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pending</span>
                 <Loader2 className="h-4 w-4 text-warning" />
               </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter(s => s.status === 'pending').length}</p>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "pending").length}</p>
             </div>
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
@@ -231,7 +252,7 @@ const Dashboard = () => {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm">Subdomain Name</Label>
@@ -239,7 +260,7 @@ const Dashboard = () => {
                       <Input
                         placeholder="myproject"
                         value={subdomain}
-                        onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                         className="flex-1 font-mono"
                         maxLength={20}
                         minLength={3}
@@ -247,12 +268,15 @@ const Dashboard = () => {
                       />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.m2hgamerz.site</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">3-20 characters, lowercase letters, numbers, and hyphens</p>
+                    <p className="text-xs text-muted-foreground">
+                      3-20 characters, lowercase letters, numbers, and hyphens
+                    </p>
                   </div>
 
                   <div className="glass-card p-3 text-sm">
                     <p className="text-muted-foreground">
-                      Your subdomain will be created with a default landing page. You can update DNS records after creation.
+                      Your subdomain will be created with a default landing page. You can update DNS records after
+                      creation.
                     </p>
                   </div>
 
@@ -260,7 +284,12 @@ const Dashboard = () => {
                     <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateForm(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" variant="hero" className="flex-1" disabled={isCreating || subdomain.length < 3}>
+                    <Button
+                      type="submit"
+                      variant="hero"
+                      className="flex-1"
+                      disabled={isCreating || subdomain.length < 3}
+                    >
                       {isCreating ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -289,7 +318,7 @@ const Dashboard = () => {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 <form onSubmit={handleUpdate} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm">Record Type</Label>
@@ -365,7 +394,10 @@ const Dashboard = () => {
             ) : (
               <div className="divide-y divide-border">
                 {subdomains.map((sub) => (
-                  <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors group">
+                  <div
+                    key={sub.id}
+                    className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors group"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
                         <Globe className="h-4 w-4 text-muted-foreground" />
@@ -373,7 +405,7 @@ const Dashboard = () => {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm truncate">{sub.full_domain}</span>
-                          <button 
+                          <button
                             onClick={() => handleCopy(sub.full_domain)}
                             className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
                           >
@@ -404,15 +436,15 @@ const Dashboard = () => {
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
-                      <a 
-                        href={`https://${sub.full_domain}`} 
-                        target="_blank" 
+                      <a
+                        href={`https://${sub.full_domain}`}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
-                      <button 
+                      <button
                         onClick={() => handleDelete(sub.id)}
                         disabled={isDeleting === sub.id}
                         className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
