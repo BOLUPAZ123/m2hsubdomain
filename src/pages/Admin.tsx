@@ -8,7 +8,10 @@ import {
   Shield,
   ArrowLeft,
   Loader2,
-  CreditCard,
+  Settings,
+  Activity,
+  Search,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -17,6 +20,9 @@ import PaymentSettings from "@/components/admin/PaymentSettings";
 import UserManagement from "@/components/admin/UserManagement";
 import SubdomainManagement from "@/components/admin/SubdomainManagement";
 import DonationManagement from "@/components/admin/DonationManagement";
+import SystemStats from "@/components/admin/SystemStats";
+import DNSChecker from "@/components/subdomain/DNSChecker";
+import logo from "@/assets/logo.png";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -40,6 +46,7 @@ const Admin = () => {
   } = useAdmin();
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [showDNSChecker, setShowDNSChecker] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
@@ -69,73 +76,92 @@ const Admin = () => {
     );
   }
 
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-4 py-4">
-            <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <div className="flex items-center gap-3">
+                <img src={logo} alt="M2H" className="w-8 h-8 rounded-lg" />
+                <div>
+                  <h1 className="text-lg font-bold flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    Admin Panel
+                  </h1>
+                  <p className="text-xs text-muted-foreground">M2H SubDomains Management</p>
+                </div>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Admin Panel</h1>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowDNSChecker(!showDNSChecker)}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                DNS Checker
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  fetchStats();
+                  if (activeTab === "users") fetchUsers();
+                  if (activeTab === "subdomains") fetchSubdomains();
+                  if (activeTab === "donations") fetchDonations();
+                }}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* DNS Checker Modal */}
+        {showDNSChecker && (
+          <div className="mb-8 glass-card p-6 animate-slide-up">
+            <DNSChecker onClose={() => setShowDNSChecker(false)} />
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="subdomains">Subdomains</TabsTrigger>
-            <TabsTrigger value="donations">Donations</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 mb-8 h-12">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="subdomains" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Subdomains
+            </TabsTrigger>
+            <TabsTrigger value="donations" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Donations
+            </TabsTrigger>
+            <TabsTrigger value="dns" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              DNS Tools
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Users</p>
-                    <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Globe className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Subdomains</p>
-                    <p className="text-3xl font-bold">{stats?.totalSubdomains || 0}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Donations</p>
-                    <p className="text-3xl font-bold">₹{stats?.totalDonations?.toFixed(2) || '0.00'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SystemStats stats={stats as any} />
           </TabsContent>
 
           {/* Users Tab */}
@@ -166,8 +192,21 @@ const Admin = () => {
             <DonationManagement donations={donations as any} isLoading={isLoading} />
           </TabsContent>
 
-          {/* Payments Tab */}
-          <TabsContent value="payments">
+          {/* DNS Tools Tab */}
+          <TabsContent value="dns">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-1">DNS Health Tools</h2>
+                <p className="text-muted-foreground">Check DNS resolution status for any subdomain</p>
+              </div>
+              <div className="glass-card p-6">
+                <DNSChecker />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
             <div className="max-w-2xl">
               <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-1">Payment Gateway Settings</h2>
