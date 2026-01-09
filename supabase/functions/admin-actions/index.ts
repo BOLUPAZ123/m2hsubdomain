@@ -89,13 +89,10 @@ Deno.serve(async (req) => {
         const { page = 1, limit = 20 } = data
         const offset = (page - 1) * limit
 
-        const { data: users, error, count } = await supabaseAdmin
+        // Fetch profiles
+        const { data: profiles, error, count } = await supabaseAdmin
           .from('profiles')
-          .select(`
-            *,
-            user_roles(role),
-            subdomains(count)
-          `, { count: 'exact' })
+          .select('*', { count: 'exact' })
           .range(offset, offset + limit - 1)
           .order('created_at', { ascending: false })
 
@@ -106,6 +103,19 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
+
+        // Fetch roles separately for each user
+        const userIds = profiles?.map(p => p.user_id) || []
+        const { data: roles } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds)
+
+        // Merge roles into users
+        const users = profiles?.map(profile => ({
+          ...profile,
+          user_roles: roles?.filter(r => r.user_id === profile.user_id) || []
+        })) || []
 
         return new Response(JSON.stringify({ 
           success: true,
@@ -125,16 +135,13 @@ Deno.serve(async (req) => {
 
         let query = supabaseAdmin
           .from('subdomains')
-          .select(`
-            *,
-            profiles!inner(name, email)
-          `, { count: 'exact' })
+          .select('*', { count: 'exact' })
 
         if (status) {
           query = query.eq('status', status)
         }
 
-        const { data: subdomains, error, count } = await query
+        const { data: subdomainList, error, count } = await query
           .range(offset, offset + limit - 1)
           .order('created_at', { ascending: false })
 
@@ -145,6 +152,19 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
+
+        // Fetch profiles for these subdomains
+        const userIds = [...new Set(subdomainList?.map(s => s.user_id) || [])]
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('user_id, name, email')
+          .in('user_id', userIds)
+
+        // Merge profiles into subdomains
+        const subdomains = subdomainList?.map(sub => ({
+          ...sub,
+          profiles: profiles?.find(p => p.user_id === sub.user_id) || { name: 'Unknown', email: '' }
+        })) || []
 
         return new Response(JSON.stringify({ 
           success: true,
@@ -162,12 +182,9 @@ Deno.serve(async (req) => {
         const { page = 1, limit = 20 } = data
         const offset = (page - 1) * limit
 
-        const { data: donations, error, count } = await supabaseAdmin
+        const { data: donationList, error, count } = await supabaseAdmin
           .from('donations')
-          .select(`
-            *,
-            profiles(name, email)
-          `, { count: 'exact' })
+          .select('*', { count: 'exact' })
           .range(offset, offset + limit - 1)
           .order('created_at', { ascending: false })
 
@@ -178,6 +195,20 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
+
+        // Fetch profiles for donations with user_id
+        const userIds = [...new Set(donationList?.filter(d => d.user_id).map(d => d.user_id) || [])]
+        const { data: profiles } = userIds.length > 0 
+          ? await supabaseAdmin.from('profiles').select('user_id, name, email').in('user_id', userIds)
+          : { data: [] }
+
+        // Merge profiles into donations
+        const donations = donationList?.map(donation => ({
+          ...donation,
+          profiles: donation.user_id 
+            ? profiles?.find(p => p.user_id === donation.user_id) || null
+            : null
+        })) || []
 
         return new Response(JSON.stringify({ 
           success: true,
