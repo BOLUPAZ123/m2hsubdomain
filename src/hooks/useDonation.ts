@@ -12,7 +12,8 @@ export function useDonation() {
     currency: string = "INR",
     customerEmail?: string,
     customerName?: string,
-    customerPhone?: string
+    customerPhone?: string,
+    returnUrl?: string
   ) => {
     setIsProcessing(true);
 
@@ -25,6 +26,7 @@ export function useDonation() {
           customerEmail,
           customerName,
           customerPhone,
+          returnUrl,
         },
       });
 
