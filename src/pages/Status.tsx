@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePublicStats } from "@/hooks/usePublicStats";
 import { Button } from "@/components/ui/button";
+import AnimatedNumber from "@/components/ui/animated-number";
 
 interface ServiceStatus {
   name: string;
@@ -25,8 +26,7 @@ interface ServiceStatus {
 }
 
 const Status = () => {
-  const { totalSubdomains, totalUsers, uptime, responseTime, isLoading } = usePublicStats();
-  const [lastChecked, setLastChecked] = useState(new Date());
+  const { totalSubdomains, totalUsers, uptime, responseTime, isLoading, lastUpdated, refresh } = usePublicStats(5000);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const services: ServiceStatus[] = [
@@ -39,7 +39,7 @@ const Status = () => {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setLastChecked(new Date());
+    refresh();
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -85,36 +85,36 @@ const Status = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12 max-w-5xl mx-auto">
-            <div className="glass-card gradient-border p-6 text-center animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <div className="glass-card gradient-border p-6 text-center animate-slide-up group hover:scale-[1.02] transition-transform" style={{ animationDelay: '0.1s' }}>
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Globe className="h-6 w-6 text-primary" />
               </div>
               <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
                 {isLoading ? (
                   <div className="h-10 w-20 bg-muted animate-pulse rounded mx-auto" />
                 ) : (
-                  totalSubdomains.toLocaleString()
+                  <AnimatedNumber value={totalSubdomains} duration={800} />
                 )}
               </div>
               <div className="text-sm text-muted-foreground">Subdomains Created</div>
             </div>
 
-            <div className="glass-card gradient-border p-6 text-center animate-slide-up" style={{ animationDelay: '0.15s' }}>
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="glass-card gradient-border p-6 text-center animate-slide-up group hover:scale-[1.02] transition-transform" style={{ animationDelay: '0.15s' }}>
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Users className="h-6 w-6 text-blue-500" />
               </div>
               <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
                 {isLoading ? (
                   <div className="h-10 w-20 bg-muted animate-pulse rounded mx-auto" />
                 ) : (
-                  totalUsers.toLocaleString()
+                  <AnimatedNumber value={totalUsers} duration={800} />
                 )}
               </div>
               <div className="text-sm text-muted-foreground">Registered Users</div>
             </div>
 
-            <div className="glass-card gradient-border p-6 text-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="glass-card gradient-border p-6 text-center animate-slide-up group hover:scale-[1.02] transition-transform" style={{ animationDelay: '0.2s' }}>
+              <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Activity className="h-6 w-6 text-green-500" />
               </div>
               <div className="text-3xl md:text-4xl font-bold text-green-500 mb-1">
@@ -123,15 +123,15 @@ const Status = () => {
               <div className="text-sm text-muted-foreground">Uptime</div>
             </div>
 
-            <div className="glass-card gradient-border p-6 text-center animate-slide-up" style={{ animationDelay: '0.25s' }}>
-              <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="glass-card gradient-border p-6 text-center animate-slide-up group hover:scale-[1.02] transition-transform" style={{ animationDelay: '0.25s' }}>
+              <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Zap className="h-6 w-6 text-yellow-500" />
               </div>
               <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
                 {isLoading ? (
                   <div className="h-10 w-20 bg-muted animate-pulse rounded mx-auto" />
                 ) : (
-                  <>{responseTime}<span className="text-lg font-normal text-muted-foreground">ms</span></>
+                  <><AnimatedNumber value={responseTime} duration={500} /><span className="text-lg font-normal text-muted-foreground">ms</span></>
                 )}
               </div>
               <div className="text-sm text-muted-foreground">Response Time</div>
@@ -183,7 +183,8 @@ const Status = () => {
             {/* Last Updated */}
             <div className="flex items-center justify-center gap-2 mt-8 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '0.5s' }}>
               <Clock className="h-4 w-4" />
-              <span>Last updated: {lastChecked.toLocaleTimeString()}</span>
+              <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              <span className="text-xs opacity-60">(auto-refreshes every 5s)</span>
             </div>
 
             {/* Additional Info */}
