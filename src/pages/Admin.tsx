@@ -184,18 +184,18 @@ const Admin = () => {
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop Tabs */}
-          <TabsList className="hidden md:flex w-full mb-8 h-11 p-1 bg-secondary/30 rounded-lg gap-1">
+          <TabsList className="hidden md:inline-flex w-full mb-8 h-12 p-1.5 bg-secondary/40 rounded-xl border border-border/30">
             {tabItems.map((tab, idx) => (
               <TabsTrigger 
                 key={tab.value} 
                 value={tab.value} 
-                className={`flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm animate-fade-in`}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-full px-3 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-foreground text-muted-foreground hover:text-foreground animate-fade-in whitespace-nowrap"
                 style={{ animationDelay: `${idx * 0.03}s` }}
               >
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
+                <tab.icon className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
