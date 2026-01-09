@@ -20,6 +20,7 @@ import {
   X,
   Edit,
   Search,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
