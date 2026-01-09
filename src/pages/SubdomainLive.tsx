@@ -5,8 +5,13 @@ import { useState } from "react";
 
 const SubdomainLive = () => {
   const [searchParams] = useSearchParams();
-  const subdomain = searchParams.get("subdomain") || "yoursubdomain";
-  const fullDomain = `${subdomain}.m2hgamerz.site`;
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+
+  const qpSubdomain = searchParams.get("subdomain");
+  const derivedDomain = hostname.endsWith(".m2hgamerz.site") ? hostname : null;
+  const fallbackDomain = qpSubdomain ? `${qpSubdomain}.m2hgamerz.site` : "yoursubdomain.m2hgamerz.site";
+
+  const fullDomain = derivedDomain ?? fallbackDomain;
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {

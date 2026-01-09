@@ -33,6 +33,7 @@ export function useSubdomains() {
     const { data, error: fetchError } = await supabase
       .from("subdomains")
       .select("*")
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false });
 
     if (fetchError) {
