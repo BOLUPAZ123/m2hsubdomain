@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Globe,
+  Globe2,
   Plus,
   LogOut,
   Home,
@@ -21,6 +22,10 @@ import {
   Edit,
   Search,
   ChevronRight,
+  Activity,
+  Wifi,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
@@ -36,7 +41,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import logo from "@/assets/logo.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -198,7 +202,9 @@ const Dashboard = () => {
       <aside className="fixed left-0 top-0 h-full w-60 border-r border-border bg-background hidden lg:block">
         <div className="p-4 border-b border-border">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="M2H" className="w-7 h-7 rounded-lg" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <Globe2 className="w-4 h-4 text-primary-foreground" />
+            </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sm">M2H SubDomains</span>
               <span className="text-[9px] text-muted-foreground -mt-0.5">Free DNS Hosting</span>
@@ -274,7 +280,7 @@ const Dashboard = () => {
 
         <div className="p-6 space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total</span>
@@ -285,16 +291,30 @@ const Dashboard = () => {
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Active</span>
-                <Check className="h-4 w-4 text-success" />
+                <Activity className="h-4 w-4 text-success" />
               </div>
               <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "active").length}</p>
             </div>
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pending</span>
-                <Loader2 className="h-4 w-4 text-warning" />
+                <Clock className="h-4 w-4 text-warning" />
               </div>
               <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "pending").length}</p>
+            </div>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">CNAME</span>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "CNAME").length}</p>
+            </div>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">A Records</span>
+                <Wifi className="h-4 w-4 text-info" />
+              </div>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "A").length}</p>
             </div>
             <div className="glass-card p-4">
               <div className="flex items-center justify-between">
@@ -304,6 +324,23 @@ const Dashboard = () => {
               <p className="text-2xl font-semibold mt-1">{subdomains.length}/5</p>
             </div>
           </div>
+
+          {/* Quick DNS Check */}
+          {subdomains.length > 0 && (
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-sm">DNS Health Check</h3>
+                  <p className="text-xs text-muted-foreground">Verify your subdomains are resolving correctly</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {subdomains.slice(0, 3).map((sub) => (
+                  <DNSChecker key={sub.id} defaultDomain={sub.full_domain} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Create Form Modal */}
           {showCreateForm && (
