@@ -17,15 +17,16 @@ import {
   Loader2,
   Shield,
   Settings,
-  ChevronRight,
   X,
   Edit,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
 import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
 import SubdomainAvailabilityIndicator from "@/components/subdomain/SubdomainAvailabilityIndicator";
 import LandingPageSettings from "@/components/subdomain/LandingPageSettings";
+import DNSChecker from "@/components/subdomain/DNSChecker";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import logo from "@/assets/logo.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -194,9 +196,12 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-60 border-r border-border bg-background hidden lg:block">
         <div className="p-4 border-b border-border">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-foreground" />
-            <span className="font-semibold text-sm">CashURL</span>
+          <Link to="/" className="flex items-center gap-3">
+            <img src={logo} alt="M2H" className="w-7 h-7 rounded-lg" />
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm">M2H SubDomains</span>
+              <span className="text-[9px] text-muted-foreground -mt-0.5">Free DNS Hosting</span>
+            </div>
           </Link>
         </div>
 
