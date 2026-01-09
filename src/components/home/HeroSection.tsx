@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Activity, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePublicStats } from "@/hooks/usePublicStats";
 
 const HeroSection = () => {
+  const { totalSubdomains, totalUsers, uptime, responseTime, isLoading } = usePublicStats();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Animated gradient background */}
@@ -66,22 +69,53 @@ const HeroSection = () => {
           </div>
 
           {/* Stats */}
-          <div className="flex items-center justify-center gap-12 mt-20 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">1,000+</div>
-              <div className="text-xs text-muted-foreground mt-1">Subdomains Created</div>
+          <Link to="/status" className="block">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 mt-20 animate-slide-up cursor-pointer group" style={{ animationDelay: '0.4s' }}>
+              <div className="text-center px-4 py-2 rounded-lg transition-colors group-hover:bg-secondary/30">
+                <div className="text-2xl md:text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  {isLoading ? (
+                    <span className="inline-block w-16 h-8 bg-muted animate-pulse rounded" />
+                  ) : (
+                    totalSubdomains.toLocaleString()
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Subdomains Created</div>
+              </div>
+              <div className="hidden sm:block w-px h-12 bg-gradient-to-b from-transparent via-border to-transparent" />
+              <div className="text-center px-4 py-2 rounded-lg transition-colors group-hover:bg-secondary/30">
+                <div className="text-2xl md:text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  {isLoading ? (
+                    <span className="inline-block w-16 h-8 bg-muted animate-pulse rounded" />
+                  ) : (
+                    totalUsers.toLocaleString()
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Happy Users</div>
+              </div>
+              <div className="hidden sm:block w-px h-12 bg-gradient-to-b from-transparent via-border to-transparent" />
+              <div className="text-center px-4 py-2 rounded-lg transition-colors group-hover:bg-secondary/30">
+                <div className="flex items-center justify-center gap-1.5">
+                  <Activity className="h-5 w-5 text-green-500" />
+                  <span className="text-2xl md:text-3xl font-bold text-green-500">{uptime}%</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Uptime</div>
+              </div>
+              <div className="hidden sm:block w-px h-12 bg-gradient-to-b from-transparent via-border to-transparent" />
+              <div className="text-center px-4 py-2 rounded-lg transition-colors group-hover:bg-secondary/30">
+                <div className="flex items-center justify-center gap-1.5">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  <span className="text-2xl md:text-3xl font-bold text-foreground">
+                    {isLoading ? (
+                      <span className="inline-block w-12 h-8 bg-muted animate-pulse rounded" />
+                    ) : (
+                      <>{responseTime}<span className="text-sm font-normal text-muted-foreground">ms</span></>
+                    )}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Response Time</div>
+              </div>
             </div>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-border to-transparent" />
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">500+</div>
-              <div className="text-xs text-muted-foreground mt-1">Happy Users</div>
-            </div>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-border to-transparent" />
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-b from-success to-success/70 bg-clip-text text-transparent">99.9%</div>
-              <div className="text-xs text-muted-foreground mt-1">Uptime</div>
-            </div>
-          </div>
+          </Link>
         </div>
 
         {/* Feature Cards */}
