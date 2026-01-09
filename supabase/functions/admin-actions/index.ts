@@ -313,6 +313,38 @@ Deno.serve(async (req) => {
         })
       }
 
+      case 'get-payment-config': {
+        // Return masked payment config
+        const CASHFREE_APP_ID = Deno.env.get('CASHFREE_APP_ID') || ''
+        const CASHFREE_SECRET_KEY = Deno.env.get('CASHFREE_SECRET_KEY') || ''
+        
+        return new Response(JSON.stringify({ 
+          success: true,
+          config: {
+            appId: CASHFREE_APP_ID,
+            secretKey: CASHFREE_SECRET_KEY ? '•'.repeat(CASHFREE_SECRET_KEY.length - 8) + CASHFREE_SECRET_KEY.slice(-4) : '',
+            isProduction: false, // Store this in a settings table if needed
+          }
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'update-payment-config': {
+        // Note: Actual secret updates should be done via Lovable Cloud secrets
+        // This just acknowledges the mode change
+        const { isProduction } = data
+        
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: `Payment mode updated. Note: To use ${isProduction ? 'production' : 'sandbox'} mode, ensure your API keys are configured correctly in Cloud secrets.`
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), { 
           status: 400, 

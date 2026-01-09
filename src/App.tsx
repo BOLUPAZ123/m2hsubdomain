@@ -11,6 +11,10 @@ import Dashboard from "./pages/Dashboard";
 import Donate from "./pages/Donate";
 import Features from "./pages/Features";
 import Admin from "./pages/Admin";
+import SubdomainLive from "./pages/SubdomainLive";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +34,10 @@ const App = () => (
             <Route path="/donate" element={<Donate />} />
             <Route path="/features" element={<Features />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/subdomain-live" element={<SubdomainLive />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/contact" element={<Contact />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
