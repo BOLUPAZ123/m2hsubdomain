@@ -24,22 +24,23 @@ export const usePublicStats = (refreshInterval = 10000): PublicStats & { refresh
     const startTime = performance.now();
     
     try {
-      // Fetch subdomain count
-      const { count: subdomainCount } = await supabase
-        .from("subdomains")
-        .select("*", { count: "exact", head: true });
-
-      // Fetch user count from profiles
-      const { count: userCount } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
+      // Use the secure database function to get public stats
+      const { data, error } = await supabase.rpc('get_public_stats');
 
       const endTime = performance.now();
       const responseTime = Math.round(endTime - startTime);
 
+      if (error) {
+        console.error("Error fetching public stats:", error);
+        setStats((prev) => ({ ...prev, isLoading: false, lastUpdated: new Date() }));
+        return;
+      }
+
+      const statsData = data as { total_subdomains: number; total_users: number } | null;
+
       setStats({
-        totalSubdomains: subdomainCount || 0,
-        totalUsers: userCount || 0,
+        totalSubdomains: statsData?.total_subdomains || 0,
+        totalUsers: statsData?.total_users || 0,
         uptime: 99.9,
         responseTime,
         isLoading: false,

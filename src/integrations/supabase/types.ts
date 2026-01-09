@@ -274,6 +274,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_stats: { Args: never; Returns: Json }
       get_user_subdomain_count: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {
