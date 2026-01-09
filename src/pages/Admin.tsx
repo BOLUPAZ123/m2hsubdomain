@@ -24,7 +24,10 @@ import UserManagement from "@/components/admin/UserManagement";
 import SubdomainManagement from "@/components/admin/SubdomainManagement";
 import DonationManagement from "@/components/admin/DonationManagement";
 import SystemStats from "@/components/admin/SystemStats";
+import SupportTicketManagement from "@/components/admin/SupportTicketManagement";
+import SubdomainLimitSettings from "@/components/admin/SubdomainLimitSettings";
 import DNSChecker from "@/components/subdomain/DNSChecker";
+import { MessageCircle, Sliders } from "lucide-react";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -84,6 +87,8 @@ const Admin = () => {
     { value: "users", label: "Users", icon: Users },
     { value: "subdomains", label: "Subdomains", icon: Globe },
     { value: "donations", label: "Donations", icon: DollarSign },
+    { value: "support", label: "Support", icon: MessageCircle },
+    { value: "limits", label: "Limits", icon: Sliders },
     { value: "dns", label: "DNS Tools", icon: Search },
     { value: "settings", label: "Settings", icon: Settings },
   ];
@@ -238,6 +243,16 @@ const Admin = () => {
           {/* Donations Tab */}
           <TabsContent value="donations">
             <DonationManagement donations={donations as any} isLoading={isLoading} />
+          </TabsContent>
+
+          {/* Support Tab */}
+          <TabsContent value="support">
+            <SupportTicketManagement />
+          </TabsContent>
+
+          {/* Limits Tab */}
+          <TabsContent value="limits">
+            <SubdomainLimitSettings />
           </TabsContent>
 
           {/* DNS Tools Tab */}

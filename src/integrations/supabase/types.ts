@@ -107,6 +107,30 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       subdomains: {
         Row: {
           cloudflare_record_id: string | null
@@ -161,6 +185,45 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          id: string
+          message: string
+          priority: string
+          responded_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string
+          responded_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string
+          responded_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -178,6 +241,30 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subdomain_limits: {
+        Row: {
+          created_at: string
+          id: string
+          subdomain_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subdomain_limit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subdomain_limit?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

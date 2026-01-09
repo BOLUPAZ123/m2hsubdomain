@@ -18,6 +18,7 @@ import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import DonationHistory from "./pages/DonationHistory";
+import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/donation-history" element={<DonationHistory />} />
+                <Route path="/support" element={<Support />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SubdomainLandingHandler>
