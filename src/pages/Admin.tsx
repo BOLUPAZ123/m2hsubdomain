@@ -94,22 +94,22 @@ const Admin = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background page-transition">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-xl">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-3 md:py-4">
             <div className="flex items-center gap-3 md:gap-4">
-              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors btn-press">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                  <Globe2 className="w-4 h-4 text-primary-foreground" />
+                <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
+                  <Globe2 className="w-4 h-4 text-background" />
                 </div>
                 <div>
-                  <h1 className="text-sm md:text-lg font-bold flex items-center gap-2">
-                    <Shield className="h-3 w-3 md:h-4 md:w-4 text-primary" />
+                  <h1 className="text-sm md:text-lg font-semibold tracking-tight flex items-center gap-2">
+                    <Shield className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                     Admin Panel
                   </h1>
                   <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">M2H SubDomains Management</p>
@@ -121,7 +121,7 @@ const Admin = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowDNSChecker(!showDNSChecker)}
-                className="hidden md:flex"
+                className="hidden md:flex btn-press"
               >
                 <Search className="h-4 w-4 mr-2" />
                 DNS Checker
@@ -135,13 +135,14 @@ const Admin = () => {
                   if (activeTab === "subdomains") fetchSubdomains();
                   if (activeTab === "donations") fetchDonations();
                 }}
+                className="btn-press"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="md:hidden btn-press"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -151,19 +152,20 @@ const Admin = () => {
           
           {/* Mobile Tab Menu */}
           {mobileMenuOpen && (
-            <nav className="md:hidden pb-4 space-y-1 animate-fade-in">
-              {tabItems.map(tab => (
+            <nav className="md:hidden pb-4 space-y-1 animate-slide-down">
+              {tabItems.map((tab, idx) => (
                 <button
                   key={tab.value}
                   onClick={() => {
                     setActiveTab(tab.value);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 animate-fade-in ${
                     activeTab === tab.value 
-                      ? "bg-secondary text-foreground" 
+                      ? "bg-secondary text-foreground font-medium" 
                       : "text-muted-foreground hover:bg-secondary/50"
                   }`}
+                  style={{ animationDelay: `${idx * 0.03}s` }}
                 >
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
@@ -174,19 +176,24 @@ const Admin = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-4 md:py-8">
+      <main className="container mx-auto px-4 py-6 md:py-8">
         {/* DNS Checker Modal */}
         {showDNSChecker && (
-          <div className="mb-6 md:mb-8 glass-card p-4 md:p-6 animate-slide-up">
+          <div className="mb-6 vercel-card p-5 animate-scale-in">
             <DNSChecker onClose={() => setShowDNSChecker(false)} />
           </div>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Desktop Tabs */}
-          <TabsList className="hidden md:grid w-full grid-cols-6 mb-8 h-12">
-            {tabItems.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
+          <TabsList className="hidden md:flex w-full mb-8 h-11 p-1 bg-secondary/30 rounded-lg gap-1">
+            {tabItems.map((tab, idx) => (
+              <TabsTrigger 
+                key={tab.value} 
+                value={tab.value} 
+                className={`flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm animate-fade-in`}
+                style={{ animationDelay: `${idx * 0.03}s` }}
+              >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
               </TabsTrigger>
@@ -194,7 +201,7 @@ const Admin = () => {
           </TabsList>
 
           {/* Mobile Current Tab Indicator */}
-          <div className="md:hidden mb-4 flex items-center justify-between">
+          <div className="md:hidden mb-5 flex items-center justify-between animate-fade-in">
             <div className="flex items-center gap-2 text-sm font-medium">
               {tabItems.find(t => t.value === activeTab)?.icon && (
                 <span className="text-primary">
@@ -206,7 +213,7 @@ const Admin = () => {
               )}
               {tabItems.find(t => t.value === activeTab)?.label}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setMobileMenuOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setMobileMenuOpen(true)} className="btn-press">
               <Menu className="h-4 w-4 mr-1" />
               Menu
             </Button>
