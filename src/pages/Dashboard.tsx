@@ -23,6 +23,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
+import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
+import SubdomainAvailabilityIndicator from "@/components/subdomain/SubdomainAvailabilityIndicator";
+import LandingPageSettings from "@/components/subdomain/LandingPageSettings";
 import {
   Select,
   SelectContent,
@@ -46,6 +49,12 @@ const Dashboard = () => {
   const [recordType, setRecordType] = useState<"A" | "CNAME">("CNAME");
   const [recordValue, setRecordValue] = useState("");
   const [proxied, setProxied] = useState(true);
+  const [landingType, setLandingType] = useState<"default" | "redirect" | "html">("default");
+  const [redirectUrl, setRedirectUrl] = useState("");
+  const [htmlContent, setHtmlContent] = useState("");
+  const [htmlTitle, setHtmlTitle] = useState("");
+  
+  const availability = useSubdomainAvailability(subdomain);
   
   const [copied, setCopied] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -64,6 +73,17 @@ const Dashboard = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const resetCreateForm = () => {
+    setSubdomain("");
+    setRecordType("CNAME");
+    setRecordValue("");
+    setProxied(true);
+    setLandingType("default");
+    setRedirectUrl("");
+    setHtmlContent("");
+    setHtmlTitle("");
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -72,20 +92,26 @@ const Dashboard = () => {
       return;
     }
 
+    if (availability.isAvailable === false) {
+      toast.error("This subdomain is not available");
+      return;
+    }
+
     setIsCreating(true);
     const result = await createSubdomain(
       subdomain,
       recordType,
       recordValue || undefined,
-      proxied
+      proxied,
+      landingType,
+      redirectUrl || undefined,
+      htmlContent || undefined,
+      htmlTitle || undefined
     );
 
     if (result.success) {
       setShowCreateForm(false);
-      setSubdomain("");
-      setRecordType("CNAME");
-      setRecordValue("");
-      setProxied(true);
+      resetCreateForm();
     }
     setIsCreating(false);
   };
@@ -95,6 +121,10 @@ const Dashboard = () => {
     setRecordType(sub.record_type);
     setRecordValue(sub.record_value);
     setProxied(sub.proxied);
+    setLandingType(sub.landing_type || "default");
+    setRedirectUrl(sub.redirect_url || "");
+    setHtmlContent(sub.html_content || "");
+    setHtmlTitle(sub.html_title || "");
     setShowEditForm(true);
   };
 
@@ -107,7 +137,11 @@ const Dashboard = () => {
       editingSubdomain.id,
       recordType,
       recordValue,
-      proxied
+      proxied,
+      landingType,
+      redirectUrl || undefined,
+      htmlContent || undefined,
+      htmlTitle || undefined
     );
 
     if (result.success) {
@@ -136,6 +170,15 @@ const Dashboard = () => {
       disabled: "bg-muted text-muted-foreground border-muted",
     };
     return styles[status as keyof typeof styles] || styles.pending;
+  };
+
+  const getLandingTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      default: "Default",
+      redirect: "Redirect",
+      html: "Custom HTML",
+    };
+    return labels[type] || "Default";
   };
 
   if (authLoading) {
@@ -258,11 +301,11 @@ const Dashboard = () => {
 
           {/* Create Form Modal */}
           {showCreateForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-              <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
+              <div className="glass-card p-6 w-full max-w-lg animate-slide-up my-8">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold">Create Subdomain</h2>
-                  <Button variant="ghost" size="icon" onClick={() => setShowCreateForm(false)}>
+                  <Button variant="ghost" size="icon" onClick={() => { setShowCreateForm(false); resetCreateForm(); }}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -282,58 +325,71 @@ const Dashboard = () => {
                       />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.cashurl.shop</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      3-20 characters, lowercase letters, numbers, and hyphens
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        3-20 characters, lowercase letters, numbers, and hyphens
+                      </p>
+                      <SubdomainAvailabilityIndicator {...availability} />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm">Record Type</Label>
-                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CNAME">CNAME (Domain/Hostname)</SelectItem>
-                        <SelectItem value="A">A (IP Address)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Record Type</Label>
+                      <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CNAME">CNAME</SelectItem>
+                          <SelectItem value="A">A Record</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm">
-                      {recordType === "A" ? "IP Address" : "Target Domain"}
-                    </Label>
-                    <Input
-                      placeholder={recordType === "A" ? "192.168.1.1" : "www.cashurl.shop"}
-                      value={recordValue}
-                      onChange={(e) => setRecordValue(e.target.value)}
-                      className="font-mono"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {recordType === "A" 
-                        ? "Enter the IP address to point to"
-                        : "Leave empty to use default (www.cashurl.shop)"}
-                    </p>
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        {recordType === "A" ? "IP Address" : "Target"}
+                      </Label>
+                      <Input
+                        placeholder={recordType === "A" ? "192.168.1.1" : "www.cashurl.shop"}
+                        value={recordValue}
+                        onChange={(e) => setRecordValue(e.target.value)}
+                        className="font-mono text-sm"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-sm">Cloudflare Proxy</Label>
-                      <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                      <p className="text-xs text-muted-foreground">CDN & DDoS protection</p>
                     </div>
                     <Switch checked={proxied} onCheckedChange={setProxied} />
                   </div>
 
+                  <div className="border-t border-border pt-4">
+                    <LandingPageSettings
+                      landingType={landingType}
+                      redirectUrl={redirectUrl}
+                      htmlContent={htmlContent}
+                      htmlTitle={htmlTitle}
+                      onLandingTypeChange={setLandingType}
+                      onRedirectUrlChange={setRedirectUrl}
+                      onHtmlContentChange={setHtmlContent}
+                      onHtmlTitleChange={setHtmlTitle}
+                    />
+                  </div>
+
                   <div className="flex gap-3 pt-2">
-                    <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateForm(false)}>
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowCreateForm(false); resetCreateForm(); }}>
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       variant="hero"
                       className="flex-1"
-                      disabled={isCreating || subdomain.length < 3}
+                      disabled={isCreating || subdomain.length < 3 || availability.isAvailable === false || availability.isChecking}
                     >
                       {isCreating ? (
                         <>
@@ -352,8 +408,8 @@ const Dashboard = () => {
 
           {/* Edit Form Modal */}
           {showEditForm && editingSubdomain && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-              <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
+              <div className="glass-card p-6 w-full max-w-lg animate-slide-up my-8">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-lg font-semibold">Edit Subdomain</h2>
@@ -365,38 +421,53 @@ const Dashboard = () => {
                 </div>
 
                 <form onSubmit={handleUpdate} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Record Type</Label>
-                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CNAME">CNAME (Domain/Hostname)</SelectItem>
-                        <SelectItem value="A">A (IP Address)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Record Type</Label>
+                      <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CNAME">CNAME</SelectItem>
+                          <SelectItem value="A">A Record</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm">
-                      {recordType === "A" ? "IP Address" : "Target Domain"}
-                    </Label>
-                    <Input
-                      placeholder={recordType === "A" ? "192.168.1.1" : "example.com"}
-                      value={recordValue}
-                      onChange={(e) => setRecordValue(e.target.value)}
-                      className="font-mono"
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        {recordType === "A" ? "IP Address" : "Target"}
+                      </Label>
+                      <Input
+                        placeholder={recordType === "A" ? "192.168.1.1" : "example.com"}
+                        value={recordValue}
+                        onChange={(e) => setRecordValue(e.target.value)}
+                        className="font-mono text-sm"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-sm">Cloudflare Proxy</Label>
-                      <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                      <p className="text-xs text-muted-foreground">CDN & DDoS protection</p>
                     </div>
                     <Switch checked={proxied} onCheckedChange={setProxied} />
+                  </div>
+
+                  <div className="border-t border-border pt-4">
+                    <LandingPageSettings
+                      landingType={landingType}
+                      redirectUrl={redirectUrl}
+                      htmlContent={htmlContent}
+                      htmlTitle={htmlTitle}
+                      onLandingTypeChange={setLandingType}
+                      onRedirectUrlChange={setRedirectUrl}
+                      onHtmlContentChange={setHtmlContent}
+                      onHtmlTitleChange={setHtmlTitle}
+                    />
                   </div>
 
                   <div className="flex gap-3 pt-2">
@@ -469,10 +540,9 @@ const Dashboard = () => {
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="font-mono">{sub.record_type}</span>
                           <ChevronRight className="h-3 w-3" />
-                          <span className="font-mono truncate max-w-[150px]">{sub.record_value}</span>
-                          {sub.proxied && (
-                            <span className="text-success">• Proxied</span>
-                          )}
+                          <span className="font-mono truncate max-w-[120px]">{sub.record_value}</span>
+                          {sub.proxied && <span className="text-success">• Proxied</span>}
+                          <span className="text-primary">• {getLandingTypeLabel(sub.landing_type)}</span>
                         </div>
                       </div>
                     </div>
@@ -518,11 +588,11 @@ const Dashboard = () => {
 
           {/* Info Card */}
           <div className="glass-card p-4">
-            <h3 className="font-medium text-sm mb-2">DNS Record Types</h3>
+            <h3 className="font-medium text-sm mb-2">Landing Page Options</h3>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>CNAME:</strong> Point to another domain (e.g., your-site.vercel.app)</p>
-              <p><strong>A Record:</strong> Point to an IP address (e.g., 192.168.1.1)</p>
-              <p><strong>Proxy:</strong> Enable Cloudflare CDN and DDoS protection</p>
+              <p><strong>Default:</strong> Shows the CashURL homepage</p>
+              <p><strong>Redirect:</strong> Redirects visitors to your specified URL</p>
+              <p><strong>Custom HTML:</strong> Display your own HTML content</p>
             </div>
           </div>
         </div>
