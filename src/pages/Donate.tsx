@@ -61,15 +61,10 @@ const Donate = () => {
 
     const result = await createDonation(amount, "INR", profile?.email, profile?.name);
 
-    if (result.success && result.paymentSessionId) {
+    if (result.success && result.checkoutUrl) {
       toast.info("Redirecting to payment gateway...");
-      // Use the Cashfree checkout URL with payment_session_id
-      const checkoutBaseUrl = result.isProduction 
-        ? 'https://payments.cashfree.com/order/#' 
-        : 'https://sandbox.cashfree.com/pg/orders/sessions';
-      
-      // For Cashfree, we need to redirect to their checkout with the session ID
-      window.location.href = `${checkoutBaseUrl}/${result.paymentSessionId}`;
+      // Redirect to the full checkout URL returned from edge function
+      window.location.href = result.checkoutUrl;
     }
   };
 

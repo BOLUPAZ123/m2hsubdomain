@@ -20,9 +20,9 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
 
-// Default server IP for new subdomains - points to a landing page server
-const DEFAULT_RECORD_VALUE = "76.76.21.21";
-const DEFAULT_RECORD_TYPE = "A";
+// Default CNAME record for new subdomains - points to the subdomain live page
+const DEFAULT_RECORD_VALUE = "73c81fe2bd0b3f5d.vercel-dns-017.com";
+const DEFAULT_RECORD_TYPE = "CNAME";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -65,8 +65,8 @@ const Dashboard = () => {
     
     setIsCreating(true);
     
-    // Create with default A record pointing to landing page
-    const result = await createSubdomain(subdomain, DEFAULT_RECORD_TYPE as "A", DEFAULT_RECORD_VALUE, true);
+    // Create with default CNAME record pointing to landing page
+    const result = await createSubdomain(subdomain, DEFAULT_RECORD_TYPE as "CNAME", DEFAULT_RECORD_VALUE, false);
     
     if (result.success) {
       setShowCreateForm(false);
@@ -144,9 +144,13 @@ const Dashboard = () => {
             <Home className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link to="/donate" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
+          <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
+            <Settings className="h-4 w-4" />
+            Profile
+          </Link>
+          <Link to="/donation-history" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
             <Heart className="h-4 w-4" />
-            Donate
+            Donations
           </Link>
           {isAdmin && (
             <Link to="/admin" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">

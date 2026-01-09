@@ -40,6 +40,7 @@ export function useDonation() {
         success: true,
         orderId: response.data.orderId,
         paymentSessionId: response.data.paymentSessionId,
+        checkoutUrl: response.data.checkoutUrl,
         amount: response.data.orderAmount,
         currency: response.data.orderCurrency,
         isProduction: response.data.isProduction,

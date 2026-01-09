@@ -36,9 +36,10 @@ Deno.serve(async (req) => {
       ? 'https://api.cashfree.com/pg' 
       : 'https://sandbox.cashfree.com/pg'
     
+    // Use redirect-based checkout instead of iframe (sandbox blocks iframe)
     const CASHFREE_CHECKOUT_URL = isProduction
-      ? 'https://payments.cashfree.com/order'
-      : 'https://sandbox.cashfree.com/checkout/post/submit'
+      ? 'https://payments.cashfree.com/order/#'
+      : 'https://sandbox.cashfree.com/pg/view/order/#'
 
     switch (action) {
       case 'create-order': {
@@ -124,13 +125,16 @@ Deno.serve(async (req) => {
           console.error('Database error:', dbError)
         }
 
+        // Build the full redirect URL for checkout
+        const redirectCheckoutUrl = `${CASHFREE_CHECKOUT_URL}${cfResult.payment_session_id}`
+
         return new Response(JSON.stringify({ 
           success: true, 
           orderId,
           paymentSessionId: cfResult.payment_session_id,
           orderAmount: cfResult.order_amount,
           orderCurrency: cfResult.order_currency,
-          checkoutUrl: CASHFREE_CHECKOUT_URL,
+          checkoutUrl: redirectCheckoutUrl,
           isProduction,
         }), { 
           status: 200, 
