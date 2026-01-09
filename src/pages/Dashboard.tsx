@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  Globe, Plus, Settings, LogOut, Home, Heart, 
-  Copy, Trash2, ExternalLink, Check, AlertCircle,
-  Server, Link as LinkIcon, Loader2, Shield
+  Globe, Plus, LogOut, Home, Heart, 
+  Copy, Trash2, ExternalLink, Check, Loader2, Shield,
+  Settings, ChevronRight, X
 } from "lucide-react";
 import {
   Select,
@@ -19,19 +19,27 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
 
+// Default server IP for new subdomains - points to a landing page server
+const DEFAULT_RECORD_VALUE = "76.76.21.21";
+const DEFAULT_RECORD_TYPE = "A";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isLoading: authLoading, signOut } = useAuth();
-  const { subdomains, isLoading, createSubdomain, deleteSubdomain } = useSubdomains();
+  const { subdomains, isLoading, createSubdomain, deleteSubdomain, updateSubdomain } = useSubdomains();
   
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState("");
-  const [recordType, setRecordType] = useState<"A" | "CNAME">("A");
-  const [recordValue, setRecordValue] = useState("");
-  const [proxied, setProxied] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Edit form state
+  const [editRecordType, setEditRecordType] = useState<"A" | "CNAME">("A");
+  const [editRecordValue, setEditRecordValue] = useState("");
+  const [editProxied, setEditProxied] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -49,14 +57,12 @@ const Dashboard = () => {
     e.preventDefault();
     setIsCreating(true);
     
-    const result = await createSubdomain(subdomain, recordType, recordValue, proxied);
+    // Create with default A record pointing to landing page
+    const result = await createSubdomain(subdomain, DEFAULT_RECORD_TYPE as "A", DEFAULT_RECORD_VALUE, true);
     
     if (result.success) {
       setShowCreateForm(false);
       setSubdomain("");
-      setRecordValue("");
-      setRecordType("A");
-      setProxied(true);
     }
     setIsCreating(false);
   };
@@ -65,6 +71,26 @@ const Dashboard = () => {
     setIsDeleting(id);
     await deleteSubdomain(id);
     setIsDeleting(null);
+  };
+
+  const handleOpenEdit = (sub: any) => {
+    setShowEditForm(sub.id);
+    setEditRecordType(sub.record_type);
+    setEditRecordValue(sub.record_value);
+    setEditProxied(sub.proxied);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditForm) return;
+    
+    setIsUpdating(true);
+    const result = await updateSubdomain(showEditForm, editRecordValue, editProxied);
+    
+    if (result.success) {
+      setShowEditForm(null);
+    }
+    setIsUpdating(false);
   };
 
   const handleSignOut = async () => {
@@ -77,7 +103,7 @@ const Dashboard = () => {
       active: "status-active",
       pending: "status-pending",
       failed: "status-failed",
-      disabled: "bg-muted/50 text-muted-foreground border-muted",
+      disabled: "bg-muted text-muted-foreground border-muted",
     };
     return styles[status as keyof typeof styles] || styles.pending;
   };
@@ -85,45 +111,47 @@ const Dashboard = () => {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
+  const editingSubdomain = subdomains.find(s => s.id === showEditForm);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 border-r border-border bg-card/50 hidden lg:block">
-        <div className="p-6">
+      <aside className="fixed left-0 top-0 h-full w-60 border-r border-border bg-background hidden lg:block">
+        <div className="p-4 border-b border-border">
           <Link to="/" className="flex items-center gap-2">
-            <Globe className="h-6 w-6 text-primary" />
-            <span className="font-bold">M2H<span className="gradient-text">Gamerz</span></span>
+            <div className="w-6 h-6 rounded-full bg-foreground" />
+            <span className="font-semibold text-sm">M2H Domains</span>
           </Link>
         </div>
 
-        <nav className="px-4 space-y-1">
-          <Link to="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-secondary text-foreground">
+        <nav className="p-2 space-y-1">
+          <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-foreground text-sm">
             <Home className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link to="/donate" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+          <Link to="/donate" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
             <Heart className="h-4 w-4" />
             Donate
           </Link>
           {isAdmin && (
-            <Link to="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+            <Link to="/admin" className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors text-sm">
               <Shield className="h-4 w-4" />
-              Admin Panel
+              Admin
             </Link>
           )}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-          <div className="mb-3 px-3">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border">
+          <div className="mb-2 px-2">
             <p className="text-sm font-medium truncate">{profile?.name || "User"}</p>
             <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={handleSignOut}>
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
             Sign out
           </Button>
@@ -131,15 +159,15 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen">
+      <main className="lg:ml-60 min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-40 border-b border-border bg-background">
           <div className="flex items-center justify-between px-6 py-4">
             <div>
-              <h1 className="text-xl font-bold">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome, {profile?.name || "User"}!</p>
+              <h1 className="text-lg font-semibold">Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Manage your subdomains</p>
             </div>
-            <Button variant="hero" onClick={() => setShowCreateForm(true)}>
+            <Button variant="hero" size="sm" onClick={() => setShowCreateForm(true)}>
               <Plus className="h-4 w-4" />
               New Subdomain
             </Button>
@@ -149,32 +177,26 @@ const Dashboard = () => {
         <div className="p-6 space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Globe className="h-5 w-5 text-primary" />
-                </div>
-                <span className="text-muted-foreground text-sm">Total Subdomains</span>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <Globe className="h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-3xl font-bold">{subdomains.length}</p>
+              <p className="text-2xl font-semibold mt-1">{subdomains.length}</p>
             </div>
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                  <Check className="h-5 w-5 text-success" />
-                </div>
-                <span className="text-muted-foreground text-sm">Active</span>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Active</span>
+                <Check className="h-4 w-4 text-success" />
               </div>
-              <p className="text-3xl font-bold">{subdomains.filter(s => s.status === 'active').length}</p>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter(s => s.status === 'active').length}</p>
             </div>
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                </div>
-                <span className="text-muted-foreground text-sm">Pending</span>
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Pending</span>
+                <Loader2 className="h-4 w-4 text-warning" />
               </div>
-              <p className="text-3xl font-bold">{subdomains.filter(s => s.status === 'pending').length}</p>
+              <p className="text-2xl font-semibold mt-1">{subdomains.filter(s => s.status === 'pending').length}</p>
             </div>
           </div>
 
@@ -182,81 +204,118 @@ const Dashboard = () => {
           {showCreateForm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
               <div className="glass-card p-6 w-full max-w-md animate-slide-up">
-                <h2 className="text-xl font-bold mb-4">Create Subdomain</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold">Create Subdomain</h2>
+                  <Button variant="ghost" size="icon" onClick={() => setShowCreateForm(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
                 
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Subdomain Name</Label>
+                    <Label className="text-sm">Subdomain Name</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         placeholder="myproject"
                         value={subdomain}
                         onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                        className="flex-1"
+                        className="flex-1 font-mono"
                         maxLength={20}
                         minLength={3}
                         required
                       />
-                      <span className="text-muted-foreground text-sm whitespace-nowrap">.m2hgamerz.site</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">.m2hgamerz.site</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only (3-20 chars)</p>
+                    <p className="text-xs text-muted-foreground">3-20 characters, lowercase letters, numbers, and hyphens</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Record Type</Label>
-                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A">
-                          <div className="flex items-center gap-2">
-                            <Server className="h-4 w-4" />
-                            A Record (IP Address)
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="CNAME">
-                          <div className="flex items-center gap-2">
-                            <LinkIcon className="h-4 w-4" />
-                            CNAME Record (Domain)
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="glass-card p-3 text-sm">
+                    <p className="text-muted-foreground">
+                      Your subdomain will be created with a default landing page. You can update DNS records after creation.
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>{recordType === "A" ? "IP Address" : "Target Domain"}</Label>
-                    <Input
-                      placeholder={recordType === "A" ? "123.45.67.89" : "example.vercel.app"}
-                      value={recordValue}
-                      onChange={(e) => setRecordValue(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {recordType === "A" && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Cloudflare Proxy</Label>
-                        <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
-                      </div>
-                      <Switch checked={proxied} onCheckedChange={setProxied} />
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-2">
                     <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateForm(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" variant="hero" className="flex-1" disabled={isCreating}>
+                    <Button type="submit" variant="hero" className="flex-1" disabled={isCreating || subdomain.length < 3}>
                       {isCreating ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Creating...
                         </>
                       ) : (
-                        "Create Subdomain"
+                        "Create"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Form Modal */}
+          {showEditForm && editingSubdomain && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+              <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold">Edit DNS Settings</h2>
+                    <p className="text-sm text-muted-foreground font-mono">{editingSubdomain.full_domain}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setShowEditForm(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <form onSubmit={handleUpdate} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Record Type</Label>
+                    <Select value={editRecordType} onValueChange={(v) => setEditRecordType(v as "A" | "CNAME")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">A Record (IP Address)</SelectItem>
+                        <SelectItem value="CNAME">CNAME Record (Domain)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">{editRecordType === "A" ? "IP Address" : "Target Domain"}</Label>
+                    <Input
+                      placeholder={editRecordType === "A" ? "123.45.67.89" : "example.vercel.app"}
+                      value={editRecordValue}
+                      onChange={(e) => setEditRecordValue(e.target.value)}
+                      className="font-mono"
+                      required
+                    />
+                  </div>
+
+                  {editRecordType === "A" && (
+                    <div className="flex items-center justify-between p-3 glass-card">
+                      <div>
+                        <Label className="text-sm">Cloudflare Proxy</Label>
+                        <p className="text-xs text-muted-foreground">CDN & DDoS protection</p>
+                      </div>
+                      <Switch checked={editProxied} onCheckedChange={setEditProxied} />
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => setShowEditForm(null)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="hero" className="flex-1" disabled={isUpdating}>
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Changes"
                       )}
                     </Button>
                   </div>
@@ -268,63 +327,74 @@ const Dashboard = () => {
           {/* Subdomains List */}
           <div className="glass-card overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h2 className="font-semibold">Your Subdomains</h2>
+              <h2 className="font-medium text-sm">Your Subdomains</h2>
             </div>
             {isLoading ? (
               <div className="p-8 text-center">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
               </div>
             ) : subdomains.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No subdomains yet. Create your first one!</p>
+              <div className="p-12 text-center">
+                <Globe className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">No subdomains yet</p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowCreateForm(true)}>
+                  Create your first subdomain
+                </Button>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {subdomains.map((sub) => (
-                  <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Globe className="h-5 w-5 text-primary" />
+                  <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium font-mono">{sub.full_domain}</span>
+                          <span className="font-mono text-sm truncate">{sub.full_domain}</span>
                           <button 
                             onClick={() => handleCopy(sub.full_domain)}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
                           >
                             {copied === sub.full_domain ? (
-                              <Check className="h-4 w-4 text-success" />
+                              <Check className="h-3 w-3 text-success" />
                             ) : (
-                              <Copy className="h-4 w-4" />
+                              <Copy className="h-3 w-3" />
                             )}
                           </button>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="font-mono">{sub.record_type}</span>
-                          <span>→</span>
-                          <span className="font-mono truncate max-w-[200px]">{sub.record_value}</span>
-                          {sub.proxied && <span className="text-primary text-xs">(Proxied)</span>}
+                          <ChevronRight className="h-3 w-3" />
+                          <span className="font-mono truncate max-w-[150px]">{sub.record_value}</span>
+                          {sub.proxied && <span className="text-success">(Proxied)</span>}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-1 rounded-full text-xs border capitalize ${getStatusBadge(sub.status)}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-xs border capitalize ${getStatusBadge(sub.status)}`}>
                         {sub.status}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                        onClick={() => handleOpenEdit(sub)}
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       <a 
                         href={`https://${sub.full_domain}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                       <button 
                         onClick={() => handleDelete(sub.id)}
                         disabled={isDeleting === sub.id}
-                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
                       >
                         {isDeleting === sub.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
