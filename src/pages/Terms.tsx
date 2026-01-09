@@ -21,7 +21,7 @@ const Terms = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing and using M2H Domains ("Service"), you agree to be bound by these Terms of Service. 
+              By accessing and using CashURL ("Service"), you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our Service.
             </p>
           </section>
@@ -29,7 +29,7 @@ const Terms = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Service Description</h2>
             <p className="text-muted-foreground leading-relaxed">
-              M2H Domains provides free subdomain registration under the m2hgamerz.site domain. Users can create 
+              CashURL provides free subdomain registration under the cashurl.shop domain. Users can create 
               subdomains, configure DNS records, and manage their domains through our dashboard.
             </p>
           </section>
@@ -98,8 +98,8 @@ const Terms = () => {
             <h2 className="text-2xl font-semibold mb-4">10. Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
               For questions about these terms, contact us at{" "}
-              <a href="mailto:help@m2hgamerz.site" className="text-foreground hover:underline">
-                help@m2hgamerz.site
+              <a href="mailto:help@cashurl.shop" className="text-foreground hover:underline">
+                help@cashurl.shop
               </a>
             </p>
           </section>

@@ -27,7 +27,7 @@ import { useSubdomains } from "@/hooks/useSubdomains";
 
 // Default CNAME record pointing to the SubdomainLive page
 const DEFAULT_RECORD_TYPE = "CNAME";
-const DEFAULT_RECORD_VALUE = "domainlive.m2hgamerz.site";
+const DEFAULT_RECORD_VALUE = "domainlive.cashurl.shop";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -267,7 +267,7 @@ const Dashboard = () => {
                         minLength={3}
                         required
                       />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">.m2hgamerz.site</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">.cashurl.shop</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       3-20 characters, lowercase letters, numbers, and hyphens

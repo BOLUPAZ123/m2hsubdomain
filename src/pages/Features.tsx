@@ -11,7 +11,7 @@ const features = [
   {
     icon: Globe,
     title: "Unlimited Free Subdomains",
-    description: "Create as many subdomains as you need under m2hgamerz.site. No limits, no hidden fees, forever free.",
+    description: "Create as many subdomains as you need under cashurl.shop. No limits, no hidden fees, forever free.",
     details: ["No registration fees", "No renewal costs", "No domain limits"]
   },
   {
@@ -70,7 +70,7 @@ const Features = () => {
                 Everything You Need, <span className="gradient-text">Nothing You Don't</span>
               </h1>
               <p className="text-lg text-muted-foreground mb-8">
-                M2HGamerz provides powerful subdomain hosting with enterprise-grade features, 
+                CashURL provides powerful subdomain hosting with enterprise-grade features, 
                 completely free. No tricks, no paywalls.
               </p>
               <Link to="/register">

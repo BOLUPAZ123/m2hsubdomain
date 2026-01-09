@@ -8,8 +8,8 @@ const SubdomainLive = () => {
   const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
   const qpSubdomain = searchParams.get("subdomain");
-  const derivedDomain = hostname.endsWith(".m2hgamerz.site") ? hostname : null;
-  const fallbackDomain = qpSubdomain ? `${qpSubdomain}.m2hgamerz.site` : "yoursubdomain.m2hgamerz.site";
+  const derivedDomain = hostname.endsWith(".cashurl.shop") ? hostname : null;
+  const fallbackDomain = qpSubdomain ? `${qpSubdomain}.cashurl.shop` : "yoursubdomain.cashurl.shop";
 
   const fullDomain = derivedDomain ?? fallbackDomain;
   const [copied, setCopied] = useState(false);
@@ -93,8 +93,8 @@ const SubdomainLive = () => {
         {/* Help */}
         <p className="text-xs text-muted-foreground mt-8">
           Need help? Contact us at{" "}
-          <a href="mailto:help@m2hgamerz.site" className="text-foreground hover:underline">
-            help@m2hgamerz.site
+          <a href="mailto:help@cashurl.shop" className="text-foreground hover:underline">
+            help@cashurl.shop
           </a>
         </p>
       </div>
