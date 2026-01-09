@@ -376,6 +376,109 @@ Deno.serve(async (req) => {
         })
       }
 
+      case 'bulk-disable-subdomains': {
+        const { subdomainIds } = data
+        if (!Array.isArray(subdomainIds) || subdomainIds.length === 0) {
+          return new Response(JSON.stringify({ error: 'No subdomain IDs provided' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Get subdomains
+        const { data: subdomainList } = await supabaseAdmin
+          .from('subdomains')
+          .select('id, cloudflare_record_id')
+          .in('id', subdomainIds)
+
+        // Delete from Cloudflare
+        if (CF_API_TOKEN && CF_ZONE_ID && subdomainList) {
+          await Promise.all(
+            subdomainList
+              .filter(s => s.cloudflare_record_id)
+              .map(s =>
+                fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${s.cloudflare_record_id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${CF_API_TOKEN}` },
+                })
+              )
+          )
+        }
+
+        // Update status to disabled
+        await supabaseAdmin
+          .from('subdomains')
+          .update({ status: 'disabled', cloudflare_record_id: null })
+          .in('id', subdomainIds)
+
+        return new Response(JSON.stringify({ success: true, count: subdomainIds.length }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'bulk-delete-subdomains': {
+        const { subdomainIds } = data
+        if (!Array.isArray(subdomainIds) || subdomainIds.length === 0) {
+          return new Response(JSON.stringify({ error: 'No subdomain IDs provided' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Get subdomains
+        const { data: subdomainList } = await supabaseAdmin
+          .from('subdomains')
+          .select('id, cloudflare_record_id')
+          .in('id', subdomainIds)
+
+        // Delete from Cloudflare
+        if (CF_API_TOKEN && CF_ZONE_ID && subdomainList) {
+          await Promise.all(
+            subdomainList
+              .filter(s => s.cloudflare_record_id)
+              .map(s =>
+                fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${s.cloudflare_record_id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${CF_API_TOKEN}` },
+                })
+              )
+          )
+        }
+
+        // Delete from database
+        await supabaseAdmin
+          .from('subdomains')
+          .delete()
+          .in('id', subdomainIds)
+
+        return new Response(JSON.stringify({ success: true, count: subdomainIds.length }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'export-users': {
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        const { data: roles } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id, role')
+
+        const users = profiles?.map(p => ({
+          ...p,
+          role: roles?.find(r => r.user_id === p.user_id)?.role || 'user'
+        })) || []
+
+        return new Response(JSON.stringify({ success: true, users }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), { 
           status: 400, 

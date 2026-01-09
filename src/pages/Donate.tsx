@@ -56,15 +56,20 @@ const Donate = () => {
 
   useEffect(() => {
     const orderId = searchParams.get("order_id");
-    const status = searchParams.get("status");
 
-    if (orderId && status) {
-      if (status === "PAID") {
-        setPaymentStatus("success");
-        verifyPayment(orderId);
-      } else {
-        setPaymentStatus("failed");
-      }
+    // Always verify with backend when returning from payment
+    if (orderId) {
+      verifyPayment(orderId).then((result) => {
+        if (result.success && result.status === "success") {
+          setPaymentStatus("success");
+        } else if (result.success && result.status === "pending") {
+          // Still pending, keep checking or show pending state
+          setPaymentStatus("idle");
+          toast.info("Payment is being processed...");
+        } else {
+          setPaymentStatus("failed");
+        }
+      });
     }
   }, [searchParams, verifyPayment]);
 

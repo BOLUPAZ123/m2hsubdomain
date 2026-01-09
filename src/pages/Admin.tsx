@@ -34,6 +34,9 @@ const Admin = () => {
     disableSubdomain,
     deleteSubdomain,
     setUserRole,
+    bulkDisableSubdomains,
+    bulkDeleteSubdomains,
+    exportUsers,
   } = useAdmin();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -141,6 +144,7 @@ const Admin = () => {
               users={users as any}
               isLoading={isLoading}
               onSetRole={setUserRole}
+              onExport={exportUsers}
             />
           </TabsContent>
 
@@ -151,6 +155,8 @@ const Admin = () => {
               isLoading={isLoading}
               onDisable={disableSubdomain}
               onDelete={deleteSubdomain}
+              onBulkDisable={bulkDisableSubdomains}
+              onBulkDelete={bulkDeleteSubdomains}
               onFilterChange={(status) => fetchSubdomains(1, status || undefined)}
             />
           </TabsContent>
