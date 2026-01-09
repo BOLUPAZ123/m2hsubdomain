@@ -1,9 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Globe2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import logo from "@/assets/logo.png";
 
 const Header = () => {
   const location = useLocation();
@@ -28,9 +27,9 @@ const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <img src={logo} alt="M2H SubDomains" className="w-8 h-8 rounded-lg" />
-              <div className="absolute inset-0 bg-primary/20 rounded-lg blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+              <Globe2 className="w-5 h-5 text-primary-foreground" />
+              <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold tracking-tight text-sm">M2H SubDomains</span>
