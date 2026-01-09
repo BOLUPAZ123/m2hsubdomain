@@ -25,7 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
 
-// New (correct - your deployed SubdomainLive page)
+// Default CNAME record pointing to the SubdomainLive page
+const DEFAULT_RECORD_TYPE = "CNAME";
 const DEFAULT_RECORD_VALUE = "domainlive.m2hgamerz.site";
 
 const Dashboard = () => {
