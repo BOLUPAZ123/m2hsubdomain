@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
   Globe, Plus, Settings, LogOut, Home, Heart, 
   Copy, Trash2, ExternalLink, Check, AlertCircle,
-  Server, Link as LinkIcon
+  Server, Link as LinkIcon, Loader2, Shield
 } from "lucide-react";
 import {
   Select,
@@ -16,21 +16,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-
-// Mock data - will be replaced with real data from Cloud
-const mockSubdomains = [
-  { id: 1, name: "myproject", recordType: "A", value: "123.45.67.89", status: "active", proxied: true },
-  { id: 2, name: "api", recordType: "CNAME", value: "api.vercel.app", status: "active", proxied: false },
-  { id: 3, name: "dev", recordType: "A", value: "98.76.54.32", status: "pending", proxied: true },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubdomains } from "@/hooks/useSubdomains";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, profile, isAdmin, isLoading: authLoading, signOut } = useAuth();
+  const { subdomains, isLoading, createSubdomain, deleteSubdomain } = useSubdomains();
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [subdomain, setSubdomain] = useState("");
-  const [recordType, setRecordType] = useState("A");
+  const [recordType, setRecordType] = useState<"A" | "CNAME">("A");
   const [recordValue, setRecordValue] = useState("");
   const [proxied, setProxied] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login");
+    }
+  }, [user, authLoading, navigate]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -38,14 +45,50 @@ const Dashboard = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+    
+    const result = await createSubdomain(subdomain, recordType, recordValue, proxied);
+    
+    if (result.success) {
+      setShowCreateForm(false);
+      setSubdomain("");
+      setRecordValue("");
+      setRecordType("A");
+      setProxied(true);
+    }
+    setIsCreating(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    setIsDeleting(id);
+    await deleteSubdomain(id);
+    setIsDeleting(null);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   const getStatusBadge = (status: string) => {
     const styles = {
       active: "status-active",
       pending: "status-pending",
       failed: "status-failed",
+      disabled: "bg-muted/50 text-muted-foreground border-muted",
     };
     return styles[status as keyof typeof styles] || styles.pending;
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,22 +106,24 @@ const Dashboard = () => {
             <Home className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link to="/dashboard/subdomains" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-            <Globe className="h-4 w-4" />
-            Subdomains
-          </Link>
           <Link to="/donate" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
             <Heart className="h-4 w-4" />
             Donate
           </Link>
-          <Link to="/dashboard/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-            <Settings className="h-4 w-4" />
-            Settings
-          </Link>
+          {isAdmin && (
+            <Link to="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+              <Shield className="h-4 w-4" />
+              Admin Panel
+            </Link>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground">
+          <div className="mb-3 px-3">
+            <p className="text-sm font-medium truncate">{profile?.name || "User"}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+          </div>
+          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
             Sign out
           </Button>
@@ -92,7 +137,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between px-6 py-4">
             <div>
               <h1 className="text-xl font-bold">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage your subdomains</p>
+              <p className="text-sm text-muted-foreground">Welcome, {profile?.name || "User"}!</p>
             </div>
             <Button variant="hero" onClick={() => setShowCreateForm(true)}>
               <Plus className="h-4 w-4" />
@@ -111,7 +156,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-muted-foreground text-sm">Total Subdomains</span>
               </div>
-              <p className="text-3xl font-bold">{mockSubdomains.length}</p>
+              <p className="text-3xl font-bold">{subdomains.length}</p>
             </div>
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-2">
@@ -120,7 +165,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-muted-foreground text-sm">Active</span>
               </div>
-              <p className="text-3xl font-bold">{mockSubdomains.filter(s => s.status === 'active').length}</p>
+              <p className="text-3xl font-bold">{subdomains.filter(s => s.status === 'active').length}</p>
             </div>
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-2">
@@ -129,17 +174,17 @@ const Dashboard = () => {
                 </div>
                 <span className="text-muted-foreground text-sm">Pending</span>
               </div>
-              <p className="text-3xl font-bold">{mockSubdomains.filter(s => s.status === 'pending').length}</p>
+              <p className="text-3xl font-bold">{subdomains.filter(s => s.status === 'pending').length}</p>
             </div>
           </div>
 
           {/* Create Form Modal */}
           {showCreateForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="glass-card p-6 w-full max-w-md mx-4 animate-slide-up">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+              <div className="glass-card p-6 w-full max-w-md animate-slide-up">
                 <h2 className="text-xl font-bold mb-4">Create Subdomain</h2>
                 
-                <form className="space-y-4">
+                <form onSubmit={handleCreate} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Subdomain Name</Label>
                     <div className="flex items-center gap-2">
@@ -148,15 +193,18 @@ const Dashboard = () => {
                         value={subdomain}
                         onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                         className="flex-1"
+                        maxLength={20}
+                        minLength={3}
+                        required
                       />
-                      <span className="text-muted-foreground text-sm">.m2hgamerz.site</span>
+                      <span className="text-muted-foreground text-sm whitespace-nowrap">.m2hgamerz.site</span>
                     </div>
                     <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only (3-20 chars)</p>
                   </div>
 
                   <div className="space-y-2">
                     <Label>Record Type</Label>
-                    <Select value={recordType} onValueChange={setRecordType}>
+                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -183,23 +231,33 @@ const Dashboard = () => {
                       placeholder={recordType === "A" ? "123.45.67.89" : "example.vercel.app"}
                       value={recordValue}
                       onChange={(e) => setRecordValue(e.target.value)}
+                      required
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Cloudflare Proxy</Label>
-                      <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                  {recordType === "A" && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Cloudflare Proxy</Label>
+                        <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                      </div>
+                      <Switch checked={proxied} onCheckedChange={setProxied} />
                     </div>
-                    <Switch checked={proxied} onCheckedChange={setProxied} />
-                  </div>
+                  )}
 
                   <div className="flex gap-3 pt-4">
                     <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateForm(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" variant="hero" className="flex-1">
-                      Create Subdomain
+                    <Button type="submit" variant="hero" className="flex-1" disabled={isCreating}>
+                      {isCreating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Subdomain"
+                      )}
                     </Button>
                   </div>
                 </form>
@@ -212,54 +270,73 @@ const Dashboard = () => {
             <div className="p-4 border-b border-border">
               <h2 className="font-semibold">Your Subdomains</h2>
             </div>
-            <div className="divide-y divide-border">
-              {mockSubdomains.map((sub) => (
-                <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Globe className="h-5 w-5 text-primary" />
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+              </div>
+            ) : subdomains.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No subdomains yet. Create your first one!</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {subdomains.map((sub) => (
+                  <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Globe className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium font-mono">{sub.full_domain}</span>
+                          <button 
+                            onClick={() => handleCopy(sub.full_domain)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {copied === sub.full_domain ? (
+                              <Check className="h-4 w-4 text-success" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-mono">{sub.record_type}</span>
+                          <span>→</span>
+                          <span className="font-mono truncate max-w-[200px]">{sub.record_value}</span>
+                          {sub.proxied && <span className="text-primary text-xs">(Proxied)</span>}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium font-mono">{sub.name}.m2hgamerz.site</span>
-                        <button 
-                          onClick={() => handleCopy(`${sub.name}.m2hgamerz.site`)}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {copied === `${sub.name}.m2hgamerz.site` ? (
-                            <Check className="h-4 w-4 text-success" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-mono">{sub.recordType}</span>
-                        <span>→</span>
-                        <span className="font-mono">{sub.value}</span>
-                        {sub.proxied && <span className="text-primary text-xs">(Proxied)</span>}
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-full text-xs border capitalize ${getStatusBadge(sub.status)}`}>
+                        {sub.status}
+                      </span>
+                      <a 
+                        href={`https://${sub.full_domain}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                      <button 
+                        onClick={() => handleDelete(sub.id)}
+                        disabled={isDeleting === sub.id}
+                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      >
+                        {isDeleting === sub.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-full text-xs border capitalize ${getStatusBadge(sub.status)}`}>
-                      {sub.status}
-                    </span>
-                    <a 
-                      href={`https://${sub.name}.m2hgamerz.site`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                    <button className="text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -2,9 +2,11 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Globe, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -14,6 +16,11 @@ const Header = () => {
     { path: "/features", label: "Features" },
     { path: "/donate", label: "Donate" },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -46,12 +53,23 @@ const Header = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost">Log in</Button>
-            </Link>
-            <Link to="/register">
-              <Button variant="hero">Get Started</Button>
-            </Link>
+            {user ? (
+              <>
+                <Link to="/dashboard">
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <Button variant="outline" onClick={handleSignOut}>Sign out</Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="hero">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -84,12 +102,23 @@ const Header = () => {
                 </Link>
               ))}
               <div className="flex gap-2 mt-4">
-                <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">Log in</Button>
-                </Link>
-                <Link to="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="hero" className="w-full">Get Started</Button>
-                </Link>
+                {user ? (
+                  <>
+                    <Link to="/dashboard" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">Dashboard</Button>
+                    </Link>
+                    <Button variant="ghost" className="flex-1" onClick={handleSignOut}>Sign out</Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">Log in</Button>
+                    </Link>
+                    <Link to="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="hero" className="w-full">Get Started</Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </div>

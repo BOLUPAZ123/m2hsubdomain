@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Globe, Eye, EyeOff, ArrowLeft, Check } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { signUp, isLoading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -18,11 +22,27 @@ const Register = () => {
     { met: /[0-9]/.test(password), text: "One number" },
   ];
 
+  const allRequirementsMet = passwordRequirements.every(r => r.met);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!allRequirementsMet) {
+      toast.error("Please meet all password requirements");
+      return;
+    }
+
     setIsLoading(true);
-    // Auth logic will be added with Cloud integration
-    setTimeout(() => setIsLoading(false), 1000);
+
+    const { error } = await signUp(email, password, name);
+
+    if (error) {
+      toast.error(error.message);
+      setIsLoading(false);
+    } else {
+      toast.success("Account created! Welcome to M2HGamerz!");
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -110,7 +130,7 @@ const Register = () => {
                 </div>
               </div>
 
-              <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>
+              <Button type="submit" variant="hero" className="w-full" disabled={isLoading || authLoading || !allRequirementsMet}>
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
 
