@@ -10,22 +10,54 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDonation } from "@/hooks/useDonation";
 import { toast } from "sonner";
 
+declare global {
+  interface Window {
+    Cashfree?: (config: { mode: "sandbox" | "production" }) => {
+      checkout: (opts: {
+        paymentSessionId: string;
+        redirectTarget?: "_self" | "_blank" | "_top" | "_modal" | HTMLElement;
+      }) => Promise<unknown>;
+    };
+  }
+}
+
 const presetAmounts = [100, 250, 500, 1000];
 
 const Donate = () => {
   const { profile } = useAuth();
   const { createDonation, verifyPayment, isProcessing } = useDonation();
   const [searchParams] = useSearchParams();
-  
+
   const [customAmount, setCustomAmount] = useState("");
   const [amount, setAmount] = useState(250);
   const [error, setError] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "success" | "failed">("idle");
+  const [cashfreeReady, setCashfreeReady] = useState(false);
+
+  useEffect(() => {
+    // Load Cashfree JS SDK (required for redirect/popup/inline checkout)
+    const existing = document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
+    if (existing) {
+      setCashfreeReady(typeof window.Cashfree === "function");
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.async = true;
+    script.onload = () => setCashfreeReady(typeof window.Cashfree === "function");
+    script.onerror = () => setCashfreeReady(false);
+    document.body.appendChild(script);
+
+    return () => {
+      // keep script cached; do not remove
+    };
+  }, []);
 
   useEffect(() => {
     const orderId = searchParams.get("order_id");
     const status = searchParams.get("status");
-    
+
     if (orderId && status) {
       if (status === "PAID") {
         setPaymentStatus("success");
@@ -59,12 +91,23 @@ const Donate = () => {
       return;
     }
 
+    if (!cashfreeReady) {
+      toast.error("Payment gateway is still loading. Please try again in a moment.");
+      return;
+    }
+
     const result = await createDonation(amount, "INR", profile?.email, profile?.name);
 
-    if (result.success && result.checkoutUrl) {
-      toast.info("Redirecting to payment gateway...");
-      // Redirect to the full checkout URL returned from edge function
-      window.location.href = result.checkoutUrl;
+    if (result.success && result.paymentSessionId) {
+      try {
+        const cashfree = window.Cashfree?.({ mode: result.isProduction ? "production" : "sandbox" });
+        if (!cashfree) throw new Error("Cashfree SDK not available");
+
+        // Redirect checkout (avoids iframe issues like “sandbox.cashfree.com refused to connect”)
+        await cashfree.checkout({ paymentSessionId: result.paymentSessionId, redirectTarget: "_self" });
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to open payment page");
+      }
     }
   };
 
