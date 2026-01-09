@@ -59,17 +59,35 @@ const Donate = () => {
 
     // Always verify with backend when returning from payment
     if (orderId) {
-      verifyPayment(orderId).then((result) => {
+      const verifyAndUpdate = async () => {
+        // Small delay to ensure Cashfree has processed the payment
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const result = await verifyPayment(orderId);
+        console.log('Payment verification result:', result);
+        
         if (result.success && result.status === "success") {
           setPaymentStatus("success");
+          toast.success("Payment successful! Thank you for your donation.");
         } else if (result.success && result.status === "pending") {
-          // Still pending, keep checking or show pending state
-          setPaymentStatus("idle");
-          toast.info("Payment is being processed...");
+          // Retry verification after a short delay
+          setTimeout(async () => {
+            const retryResult = await verifyPayment(orderId);
+            if (retryResult.success && retryResult.status === "success") {
+              setPaymentStatus("success");
+              toast.success("Payment successful! Thank you for your donation.");
+            } else if (retryResult.status === "failed") {
+              setPaymentStatus("failed");
+            } else {
+              toast.info("Payment is still being processed. Please check your donation history.");
+            }
+          }, 3000);
         } else {
           setPaymentStatus("failed");
         }
-      });
+      };
+      
+      verifyAndUpdate();
     }
   }, [searchParams, verifyPayment]);
 
@@ -101,14 +119,17 @@ const Donate = () => {
       return;
     }
 
-    const result = await createDonation(amount, "INR", profile?.email, profile?.name);
+    // Build return URL with current origin
+    const returnUrl = `${window.location.origin}/donate`;
+
+    const result = await createDonation(amount, "INR", profile?.email, profile?.name, undefined, returnUrl);
 
     if (result.success && result.paymentSessionId) {
       try {
         const cashfree = window.Cashfree?.({ mode: result.isProduction ? "production" : "sandbox" });
         if (!cashfree) throw new Error("Cashfree SDK not available");
 
-        // Redirect checkout (avoids iframe issues like “sandbox.cashfree.com refused to connect”)
+        // Redirect checkout (avoids iframe issues like "sandbox.cashfree.com refused to connect")
         await cashfree.checkout({ paymentSessionId: result.paymentSessionId, redirectTarget: "_self" });
       } catch (e: any) {
         toast.error(e?.message || "Failed to open payment page");

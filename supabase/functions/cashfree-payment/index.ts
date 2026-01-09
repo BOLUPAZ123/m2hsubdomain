@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           userId = userData?.user?.id || null
         }
 
-        const { amount, currency = 'INR', customerEmail, customerName, customerPhone } = data
+        const { amount, currency = 'INR', customerEmail, customerName, customerPhone, returnUrl: clientReturnUrl } = data
 
         if (!amount || amount < 10) {
           return new Response(JSON.stringify({ error: 'Minimum donation is ₹10' }), { 
@@ -67,7 +67,12 @@ Deno.serve(async (req) => {
         }
 
         const orderId = `donation_${Date.now()}_${Math.random().toString(36).substring(7)}`
-        const returnUrl = `${req.headers.get('origin')}/donate?order_id=${orderId}&status={order_status}`
+        
+        // Use client-provided return URL or fallback to origin
+        const origin = req.headers.get('origin') || 'https://m2hsubdomains.lovable.app'
+        const returnUrl = clientReturnUrl || `${origin}/donate?order_id=${orderId}`
+
+        console.log('Creating order with return URL:', returnUrl)
 
         // Create order in Cashfree using latest API version
         const cfResponse = await fetch(`${CASHFREE_BASE_URL}/orders`, {
@@ -90,6 +95,7 @@ Deno.serve(async (req) => {
             },
             order_meta: {
               return_url: returnUrl,
+              notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/cashfree-payment`,
             },
           }),
         })
@@ -106,6 +112,8 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
+
+        console.log('Cashfree order created:', cfResult.order_id)
 
         // Save donation record with customer info
         const { error: dbError } = await supabase
