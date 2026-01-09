@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     }
 
     const { action, ...data } = await req.json()
-    const DOMAIN = 'm2hgamerz.site'
+    const DOMAIN = 'cashurl.shop'
 
     switch (action) {
       case 'create': {

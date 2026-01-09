@@ -30,8 +30,8 @@ const Contact = () => {
               For general inquiries, technical support, or account issues.
             </p>
             <Button asChild variant="outline">
-              <a href="mailto:help@m2hgamerz.site">
-                help@m2hgamerz.site
+              <a href="mailto:help@cashurl.shop">
+                help@cashurl.shop
               </a>
             </Button>
           </div>
@@ -88,7 +88,7 @@ const Contact = () => {
             <div>
               <h3 className="font-medium mb-2">How do I delete my account?</h3>
               <p className="text-muted-foreground text-sm">
-                Contact us at help@m2hgamerz.site with your account email and we'll process your deletion request.
+                Contact us at help@cashurl.shop with your account email and we'll process your deletion request.
               </p>
             </div>
           </div>

@@ -32,7 +32,7 @@ const HeroSection = () => {
 
           {/* Subheading */}
           <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Create unlimited subdomains under <span className="text-foreground font-mono text-sm bg-secondary px-2 py-0.5 rounded">m2hgamerz.site</span>. 
+            Create unlimited subdomains under <span className="text-foreground font-mono text-sm bg-secondary px-2 py-0.5 rounded">cashurl.shop</span>. 
             Instant DNS propagation. Community supported.
           </p>
 
@@ -40,7 +40,7 @@ const HeroSection = () => {
           <div className="glass-card p-4 mb-8 max-w-sm mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-center gap-1 font-mono text-sm">
               <span className="text-foreground">yourname</span>
-              <span className="text-muted-foreground">.m2hgamerz.site</span>
+              <span className="text-muted-foreground">.cashurl.shop</span>
             </div>
           </div>
 

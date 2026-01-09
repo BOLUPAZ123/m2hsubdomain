@@ -21,10 +21,10 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Check if accessing via domainlive.m2hgamerz.site
+// Check if accessing via domainlive.cashurl.shop
 const isDomainLiveSite = () => {
   const hostname = window.location.hostname;
-  return hostname === "domainlive.m2hgamerz.site" || hostname === "www.domainlive.m2hgamerz.site";
+  return hostname === "domainlive.cashurl.shop" || hostname === "www.domainlive.cashurl.shop";
 };
 
 const App = () => {
