@@ -42,6 +42,7 @@ export function useDonation() {
         paymentSessionId: response.data.paymentSessionId,
         amount: response.data.orderAmount,
         currency: response.data.orderCurrency,
+        isProduction: response.data.isProduction,
       };
     } catch (err: any) {
       toast.error(err.message || "Failed to process donation");
