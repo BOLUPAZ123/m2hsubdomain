@@ -1,64 +1,58 @@
-import { Shield, Zap, Globe, Heart, Lock, Server } from "lucide-react";
+import { Globe, Zap, Shield, Settings, Clock, Users } from "lucide-react";
 
 const features = [
   {
     icon: Globe,
-    title: "Free Subdomains",
-    description: "Create as many subdomains as you need under m2hgamerz.site without paying a cent."
+    title: "Unlimited Subdomains",
+    description: "Create as many subdomains as you need. No artificial limits or premium tiers.",
   },
   {
     icon: Zap,
-    title: "Instant Setup",
-    description: "DNS records are created instantly via Cloudflare's global network."
+    title: "Instant Propagation",
+    description: "DNS changes go live in seconds, not hours. Powered by Cloudflare's global network.",
   },
   {
     icon: Shield,
     title: "DDoS Protection",
-    description: "Optional Cloudflare proxy provides enterprise-grade security."
+    description: "Every subdomain is protected by Cloudflare's enterprise-grade security.",
   },
   {
-    icon: Server,
-    title: "A & CNAME Records",
-    description: "Point to IP addresses or other domains with full DNS control."
+    icon: Settings,
+    title: "Full DNS Control",
+    description: "Configure A records, CNAME records, and proxy settings through a simple interface.",
   },
   {
-    icon: Lock,
-    title: "Secure Platform",
-    description: "Rate limiting, input validation, and abuse protection built-in."
+    icon: Clock,
+    title: "Always Available",
+    description: "99.9% uptime guaranteed. Your subdomains stay online when you need them.",
   },
   {
-    icon: Heart,
+    icon: Users,
     title: "Community Supported",
-    description: "Keep the platform running through optional donations."
-  }
+    description: "Open and free for everyone. Optional donations keep the service running.",
+  },
 ];
 
 const FeaturesSection = () => {
   return (
-    <section className="py-20 relative">
-      <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-      
-      <div className="container mx-auto px-4 relative z-10">
+    <section className="py-24 border-t border-border">
+      <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Everything You Need, <span className="gradient-text">Completely Free</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Get started with your subdomain in under a minute. No hidden fees, no subscriptions.
+          <h2 className="text-3xl font-bold mb-4">Everything you need</h2>
+          <p className="text-muted-foreground max-w-lg mx-auto">
+            Simple, powerful features to get your subdomain up and running in seconds.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {features.map((feature, index) => (
-            <div 
-              key={index} 
-              className="glass-card p-6 hover:border-primary/50 transition-all duration-300 group"
+            <div
+              key={index}
+              className="glass-card p-6 hover-lift"
             >
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <feature.icon className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm">{feature.description}</p>
+              <feature.icon className="h-5 w-5 text-muted-foreground mb-4" />
+              <h3 className="font-medium mb-2">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>
