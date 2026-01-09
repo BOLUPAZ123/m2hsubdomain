@@ -21,24 +21,46 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Check if accessing via domainlive.cashurl.shop
-const isDomainLiveSite = () => {
+// Check if accessing via a subdomain of cashurl.shop (wildcard DNS)
+const isSubdomainAccess = () => {
   const hostname = window.location.hostname;
-  return hostname === "domainlive.cashurl.shop" || hostname === "www.domainlive.cashurl.shop";
+  // Match any subdomain like user1.cashurl.shop, demo.cashurl.shop, etc.
+  // But exclude www.cashurl.shop and the root cashurl.shop
+  if (hostname === "cashurl.shop" || hostname === "www.cashurl.shop") {
+    return false;
+  }
+  // Check if it ends with .cashurl.shop
+  return hostname.endsWith(".cashurl.shop");
 };
 
 const App = () => {
-  // If accessed via domainlive domain, show only the SubdomainLive page
-  if (isDomainLiveSite()) {
+  // If accessed via any subdomain (wildcard DNS), show the main website as the "live" page
+  if (isSubdomainAccess()) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="*" element={<SubdomainLive />} />
-            </Routes>
+            <AuthProvider>
+              <Routes>
+                {/* All subdomain traffic shows the main website */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/donate" element={<Donate />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/subdomain-live" element={<SubdomainLive />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/donation-history" element={<DonationHistory />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

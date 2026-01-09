@@ -49,12 +49,7 @@ export function useSubdomains() {
     fetchSubdomains();
   }, [fetchSubdomains]);
 
-  const createSubdomain = async (
-    subdomain: string,
-    recordType: "A" | "CNAME",
-    recordValue: string,
-    proxied: boolean
-  ) => {
+  const createSubdomain = async (subdomain: string) => {
     if (!session) {
       toast.error("Please sign in to create a subdomain");
       return { success: false };
@@ -65,9 +60,6 @@ export function useSubdomains() {
         body: {
           action: "create",
           subdomain,
-          recordType,
-          recordValue,
-          proxied,
         },
       });
 
