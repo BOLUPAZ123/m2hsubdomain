@@ -134,7 +134,8 @@ Deno.serve(async (req) => {
         }
 
         // Default record value if not provided
-        const finalRecordValue = recordValue || `www.${DOMAIN}`
+        // IMPORTANT: must point to an existing resolvable host; many setups don't have `www`.
+        const finalRecordValue = recordValue || DOMAIN
 
         // Validate record value based on type
         if (recordType === 'A') {
