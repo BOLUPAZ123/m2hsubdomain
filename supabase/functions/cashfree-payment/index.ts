@@ -14,21 +14,11 @@ Deno.serve(async (req) => {
     const CASHFREE_APP_ID = Deno.env.get('CASHFREE_APP_ID')
     const CASHFREE_SECRET_KEY = Deno.env.get('CASHFREE_SECRET_KEY')
     
-    if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-      console.error('Missing Cashfree credentials')
-      return new Response(JSON.stringify({ error: 'Payment gateway not configured' }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
     // Use service role key to bypass RLS for donation records
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-
-    const { action, ...data } = await req.json()
 
     // Check if production mode is enabled (default to sandbox)
     const isProduction = Deno.env.get('CASHFREE_PRODUCTION') === 'true'
@@ -40,6 +30,60 @@ Deno.serve(async (req) => {
     const CASHFREE_CHECKOUT_URL = isProduction
       ? 'https://payments.cashfree.com/order/#'
       : 'https://sandbox.cashfree.com/pg/view/order/#'
+
+    // Check if this is a webhook POST from Cashfree (no action field)
+    const contentType = req.headers.get('content-type') || ''
+    let body: any = {}
+    
+    if (contentType.includes('application/json')) {
+      body = await req.json()
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      const formData = await req.formData()
+      body = Object.fromEntries(formData.entries())
+    }
+
+    // Handle webhook notification from Cashfree
+    if (body.type === 'PAYMENT_SUCCESS_WEBHOOK' || body.type === 'PAYMENT_FAILED_WEBHOOK' || body.data?.order?.order_id) {
+      console.log('Received Cashfree webhook:', JSON.stringify(body))
+      
+      const orderData = body.data?.order || body
+      const orderId = orderData.order_id || body.order_id
+      const orderStatus = orderData.order_status || body.order_status
+      
+      if (orderId) {
+        const newStatus = orderStatus === 'PAID' ? 'success' : 
+                          orderStatus === 'ACTIVE' ? 'pending' : 'failed'
+        
+        const { error: updateError } = await supabase
+          .from('donations')
+          .update({ 
+            status: newStatus,
+            payment_id: orderData.cf_order_id?.toString() || body.cf_order_id?.toString(),
+          })
+          .eq('order_id', orderId)
+        
+        if (updateError) {
+          console.error('Webhook update error:', updateError)
+        } else {
+          console.log(`Webhook: Updated order ${orderId} to status ${newStatus}`)
+        }
+      }
+      
+      return new Response(JSON.stringify({ success: true }), { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const { action, ...data } = body
+    
+    if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+      console.error('Missing Cashfree credentials')
+      return new Response(JSON.stringify({ error: 'Payment gateway not configured' }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
     switch (action) {
       case 'create-order': {
