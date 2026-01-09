@@ -252,6 +252,32 @@ Deno.serve(async (req) => {
           })
         }
 
+        const newValue = recordValue || subdomain.record_value
+        
+        // Validate: CNAME requires a valid hostname, not an IP address
+        if (subdomain.record_type === 'CNAME') {
+          const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+          const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/
+          if (ipv4Regex.test(newValue) || ipv6Regex.test(newValue)) {
+            return new Response(JSON.stringify({ 
+              error: 'CNAME records require a hostname, not an IP address. Use an A record for IP addresses.' 
+            }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+          // Basic hostname validation
+          const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+          if (!hostnameRegex.test(newValue)) {
+            return new Response(JSON.stringify({ 
+              error: 'Invalid hostname for CNAME record. Please enter a valid domain name.' 
+            }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        }
+
         // Update in Cloudflare
         if (subdomain.cloudflare_record_id) {
           const cfResponse = await fetch(
@@ -263,7 +289,7 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                content: recordValue || subdomain.record_value,
+                content: newValue,
                 proxied: subdomain.record_type === 'A' ? (proxied ?? subdomain.proxied) : false,
               }),
             }
@@ -272,7 +298,7 @@ Deno.serve(async (req) => {
           const cfResult = await cfResponse.json()
           if (!cfResult.success) {
             console.error('Cloudflare update error:', cfResult.errors)
-            return new Response(JSON.stringify({ error: 'Failed to update DNS record' }), { 
+            return new Response(JSON.stringify({ error: 'Failed to update DNS record', details: cfResult.errors }), { 
               status: 500, 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
