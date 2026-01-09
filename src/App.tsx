@@ -19,6 +19,7 @@ import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import DonationHistory from "./pages/DonationHistory";
 import Support from "./pages/Support";
+import Status from "./pages/Status";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/donation-history" element={<DonationHistory />} />
                 <Route path="/support" element={<Support />} />
+                <Route path="/status" element={<Status />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SubdomainLandingHandler>
