@@ -63,7 +63,13 @@ const Donate = () => {
 
     if (result.success && result.paymentSessionId) {
       toast.info("Redirecting to payment gateway...");
-      window.location.href = `https://sandbox.cashfree.com/pg/view/payment?order_id=${result.orderId}`;
+      // Use the Cashfree checkout URL with payment_session_id
+      const checkoutBaseUrl = result.isProduction 
+        ? 'https://payments.cashfree.com/order/#' 
+        : 'https://sandbox.cashfree.com/pg/orders/sessions';
+      
+      // For Cashfree, we need to redirect to their checkout with the session ID
+      window.location.href = `${checkoutBaseUrl}/${result.paymentSessionId}`;
     }
   };
 

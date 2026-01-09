@@ -19,6 +19,9 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
           id: string
           order_id: string | null
           payment_id: string | null
@@ -30,6 +33,9 @@ export type Database = {
           amount: number
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           order_id?: string | null
           payment_id?: string | null
@@ -41,6 +47,9 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           order_id?: string | null
           payment_id?: string | null

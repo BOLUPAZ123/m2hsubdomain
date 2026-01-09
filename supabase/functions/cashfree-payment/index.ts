@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,15 +22,23 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Use service role key to bypass RLS for donation records
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
     const { action, ...data } = await req.json()
 
-    // Use sandbox or production based on environment
-    const CASHFREE_BASE_URL = 'https://sandbox.cashfree.com/pg' // Change to https://api.cashfree.com/pg for production
+    // Check if production mode is enabled (default to sandbox)
+    const isProduction = Deno.env.get('CASHFREE_PRODUCTION') === 'true'
+    const CASHFREE_BASE_URL = isProduction 
+      ? 'https://api.cashfree.com/pg' 
+      : 'https://sandbox.cashfree.com/pg'
+    
+    const CASHFREE_CHECKOUT_URL = isProduction
+      ? 'https://payments.cashfree.com/order'
+      : 'https://sandbox.cashfree.com/checkout/post/submit'
 
     switch (action) {
       case 'create-order': {
@@ -39,28 +46,29 @@ Deno.serve(async (req) => {
         let userId = null
 
         if (authHeader?.startsWith('Bearer ')) {
-          const supabaseWithAuth = createClient(
+          const userSupabase = createClient(
             Deno.env.get('SUPABASE_URL')!,
             Deno.env.get('SUPABASE_ANON_KEY')!,
             { global: { headers: { Authorization: authHeader } } }
           )
           const token = authHeader.replace('Bearer ', '')
-          const { data: userData } = await supabaseWithAuth.auth.getUser(token)
+          const { data: userData } = await userSupabase.auth.getUser(token)
           userId = userData?.user?.id || null
         }
 
         const { amount, currency = 'INR', customerEmail, customerName, customerPhone } = data
 
-        if (!amount || amount < 1) {
-          return new Response(JSON.stringify({ error: 'Minimum donation is $1 (or equivalent)' }), { 
+        if (!amount || amount < 10) {
+          return new Response(JSON.stringify({ error: 'Minimum donation is ₹10' }), { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
 
         const orderId = `donation_${Date.now()}_${Math.random().toString(36).substring(7)}`
+        const returnUrl = `${req.headers.get('origin')}/donate?order_id=${orderId}&status={order_status}`
 
-        // Create order in Cashfree
+        // Create order in Cashfree using latest API version
         const cfResponse = await fetch(`${CASHFREE_BASE_URL}/orders`, {
           method: 'POST',
           headers: {
@@ -71,7 +79,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             order_id: orderId,
-            order_amount: amount,
+            order_amount: parseFloat(amount.toFixed(2)),
             order_currency: currency,
             customer_details: {
               customer_id: userId || `guest_${Date.now()}`,
@@ -80,8 +88,7 @@ Deno.serve(async (req) => {
               customer_name: customerName || 'Anonymous Donor',
             },
             order_meta: {
-              return_url: `${req.headers.get('origin')}/donate?order_id=${orderId}&status={order_status}`,
-              notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/cashfree-webhook`,
+              return_url: returnUrl,
             },
           }),
         })
@@ -89,14 +96,17 @@ Deno.serve(async (req) => {
         const cfResult = await cfResponse.json()
 
         if (!cfResponse.ok) {
-          console.error('Cashfree order error:', cfResult)
-          return new Response(JSON.stringify({ error: 'Failed to create payment order', details: cfResult }), { 
+          console.error('Cashfree order error:', JSON.stringify(cfResult))
+          return new Response(JSON.stringify({ 
+            error: 'Failed to create payment order', 
+            details: cfResult.message || cfResult 
+          }), { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
 
-        // Save donation record
+        // Save donation record with customer info
         const { error: dbError } = await supabase
           .from('donations')
           .insert({
@@ -105,6 +115,9 @@ Deno.serve(async (req) => {
             currency,
             order_id: orderId,
             status: 'pending',
+            customer_name: customerName || 'Anonymous Donor',
+            customer_email: customerEmail || null,
+            customer_phone: customerPhone || null,
           })
 
         if (dbError) {
@@ -117,6 +130,8 @@ Deno.serve(async (req) => {
           paymentSessionId: cfResult.payment_session_id,
           orderAmount: cfResult.order_amount,
           orderCurrency: cfResult.order_currency,
+          checkoutUrl: CASHFREE_CHECKOUT_URL,
+          isProduction,
         }), { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -161,7 +176,7 @@ Deno.serve(async (req) => {
           .from('donations')
           .update({ 
             status: newStatus,
-            payment_id: cfResult.cf_order_id,
+            payment_id: cfResult.cf_order_id?.toString(),
           })
           .eq('order_id', orderId)
 
@@ -181,15 +196,27 @@ Deno.serve(async (req) => {
         })
       }
 
+      case 'get-config': {
+        return new Response(JSON.stringify({ 
+          success: true,
+          isProduction,
+          appId: CASHFREE_APP_ID ? `${CASHFREE_APP_ID.slice(0, 8)}...` : null,
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: 'Internal server error', details: errorMessage }), { 
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
