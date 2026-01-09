@@ -22,10 +22,12 @@ import {
   Edit,
   Search,
   ChevronRight,
+  ChevronLeft,
   Activity,
   Wifi,
   Clock,
   TrendingUp,
+  Menu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
@@ -42,6 +44,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+const ITEMS_PER_PAGE = 5;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isLoading: authLoading, signOut } = useAuth();
@@ -50,6 +54,9 @@ const Dashboard = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSubdomain, setEditingSubdomain] = useState<any>(null);
+  const [showDNSChecker, setShowDNSChecker] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Create form state
   const [subdomain, setSubdomain] = useState("");
@@ -67,6 +74,13 @@ const Dashboard = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  // Pagination
+  const totalPages = Math.ceil(subdomains.length / ITEMS_PER_PAGE);
+  const paginatedSubdomains = subdomains.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -198,7 +212,77 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar */}
+      {/* Mobile Header */}
+      <header className="lg:hidden sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <Globe2 className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-sm">M2H SubDomains</span>
+          </Link>
+          <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <nav className="px-4 pb-4 space-y-1 animate-fade-in border-t border-border pt-3">
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-foreground text-sm"
+            >
+              <Home className="h-4 w-4" />
+              Dashboard
+            </Link>
+            <Link
+              to="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary text-sm"
+            >
+              <Settings className="h-4 w-4" />
+              Profile
+            </Link>
+            <Link
+              to="/donation-history"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary text-sm"
+            >
+              <Heart className="h-4 w-4" />
+              Donations
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary text-sm"
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
+            <div className="pt-3 border-t border-border mt-3">
+              <div className="px-3 mb-2">
+                <p className="text-sm font-medium truncate">{profile?.name || "User"}</p>
+                <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </Button>
+            </div>
+          </nav>
+        )}
+      </header>
+
+      {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-60 border-r border-border bg-background hidden lg:block">
         <div className="p-4 border-b border-border">
           <Link to="/" className="flex items-center gap-3">
@@ -265,82 +349,98 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="lg:ml-60 min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 border-b border-border bg-background">
-          <div className="flex items-center justify-between px-6 py-4">
+        <header className="sticky top-0 z-40 border-b border-border bg-background hidden lg:block">
+          <div className="flex items-center justify-between px-4 md:px-6 py-4">
             <div>
               <h1 className="text-lg font-semibold">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage your subdomains</p>
+              <p className="text-sm text-muted-foreground hidden sm:block">Manage your subdomains</p>
             </div>
-            <Button variant="hero" size="sm" onClick={() => setShowCreateForm(true)}>
-              <Plus className="h-4 w-4" />
-              New Subdomain
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDNSChecker(!showDNSChecker)}
+                className="hidden sm:flex"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                DNS Check
+              </Button>
+              <Button variant="hero" size="sm" onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">New Subdomain</span>
+              </Button>
+            </div>
           </div>
         </header>
 
-        <div className="p-6 space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <Globe className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.length}</p>
-            </div>
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Active</span>
-                <Activity className="h-4 w-4 text-success" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "active").length}</p>
-            </div>
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Pending</span>
-                <Clock className="h-4 w-4 text-warning" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "pending").length}</p>
-            </div>
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">CNAME</span>
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "CNAME").length}</p>
-            </div>
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">A Records</span>
-                <Wifi className="h-4 w-4 text-info" />
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "A").length}</p>
-            </div>
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Limit</span>
-                <span className="text-xs text-muted-foreground">Max 5</span>
-              </div>
-              <p className="text-2xl font-semibold mt-1">{subdomains.length}/5</p>
-            </div>
-          </div>
+        {/* Mobile Action Bar */}
+        <div className="lg:hidden px-4 py-3 border-b border-border bg-background flex items-center justify-between gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowDNSChecker(!showDNSChecker)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button variant="hero" size="sm" onClick={() => setShowCreateForm(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            New Subdomain
+          </Button>
+        </div>
 
-          {/* Quick DNS Check */}
-          {subdomains.length > 0 && (
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-sm">DNS Health Check</h3>
-                  <p className="text-xs text-muted-foreground">Verify your subdomains are resolving correctly</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {subdomains.slice(0, 3).map((sub) => (
-                  <DNSChecker key={sub.id} defaultDomain={sub.full_domain} />
-                ))}
-              </div>
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* DNS Checker Modal */}
+          {showDNSChecker && (
+            <div className="glass-card p-4 md:p-6 animate-slide-up">
+              <DNSChecker onClose={() => setShowDNSChecker(false)} />
             </div>
           )}
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">Total</span>
+                <Globe className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.length}</p>
+            </div>
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">Active</span>
+                <Activity className="h-3 w-3 md:h-4 md:w-4 text-success" />
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "active").length}</p>
+            </div>
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">Pending</span>
+                <Clock className="h-3 w-3 md:h-4 md:w-4 text-warning" />
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.filter((s) => s.status === "pending").length}</p>
+            </div>
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">CNAME</span>
+                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-primary" />
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "CNAME").length}</p>
+            </div>
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">A Records</span>
+                <Wifi className="h-3 w-3 md:h-4 md:w-4 text-info" />
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.filter((s) => s.record_type === "A").length}</p>
+            </div>
+            <div className="glass-card p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs md:text-sm text-muted-foreground">Limit</span>
+                <span className="text-[10px] md:text-xs text-muted-foreground">Max 5</span>
+              </div>
+              <p className="text-xl md:text-2xl font-semibold mt-1">{subdomains.length}/5</p>
+            </div>
+          </div>
 
           {/* Create Form Modal */}
           {showCreateForm && (
@@ -540,15 +640,20 @@ const Dashboard = () => {
 
           {/* Subdomains List */}
           <div className="glass-card overflow-hidden">
-            <div className="p-4 border-b border-border">
+            <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
               <h2 className="font-medium text-sm">Your Subdomains</h2>
+              {subdomains.length > ITEMS_PER_PAGE && (
+                <span className="text-xs text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+              )}
             </div>
             {isLoading ? (
               <div className="p-8 text-center">
                 <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
               </div>
             ) : subdomains.length === 0 ? (
-              <div className="p-12 text-center">
+              <div className="p-8 md:p-12 text-center">
                 <Globe className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">No subdomains yet</p>
                 <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowCreateForm(true)}>
@@ -556,84 +661,123 @@ const Dashboard = () => {
                 </Button>
               </div>
             ) : (
-              <div className="divide-y divide-border">
-                {subdomains.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
+              <>
+                <div className="divide-y divide-border">
+                  {paginatedSubdomains.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-secondary/30 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs md:text-sm truncate">{sub.full_domain}</span>
+                            <button
+                              onClick={() => handleCopy(sub.full_domain)}
+                              className="text-muted-foreground hover:text-foreground transition-colors md:opacity-0 md:group-hover:opacity-100"
+                            >
+                              {copied === sub.full_domain ? (
+                                <Check className="h-3 w-3 text-success" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-muted-foreground flex-wrap">
+                            <span className="font-mono">{sub.record_type}</span>
+                            <ChevronRight className="h-2 w-2 md:h-3 md:w-3" />
+                            <span className="font-mono truncate max-w-[80px] md:max-w-[120px]">{sub.record_value}</span>
+                            {sub.proxied && <span className="text-success hidden md:inline">• Proxied</span>}
+                            <span className="text-primary hidden md:inline">• {getLandingTypeLabel(sub.landing_type)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm truncate">{sub.full_domain}</span>
-                          <button
-                            onClick={() => handleCopy(sub.full_domain)}
-                            className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            {copied === sub.full_domain ? (
-                              <Check className="h-3 w-3 text-success" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="font-mono">{sub.record_type}</span>
-                          <ChevronRight className="h-3 w-3" />
-                          <span className="font-mono truncate max-w-[120px]">{sub.record_value}</span>
-                          {sub.proxied && <span className="text-success">• Proxied</span>}
-                          <span className="text-primary">• {getLandingTypeLabel(sub.landing_type)}</span>
-                        </div>
+                      <div className="flex items-center gap-2 ml-11 md:ml-0">
+                        <span className={`px-2 py-0.5 rounded text-[10px] md:text-xs border capitalize ${getStatusBadge(sub.status)}`}>
+                          {sub.status}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => handleEdit(sub)}
+                        >
+                          <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                        </Button>
+                        <a
+                          href={`https://${sub.full_domain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ExternalLink className="h-3 w-3 md:h-4 md:w-4" />
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(sub.id)}
+                          disabled={isDeleting === sub.id}
+                        >
+                          {isDeleting === sub.id ? (
+                            <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-xs border capitalize ${getStatusBadge(sub.status)}`}>
-                        {sub.status}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => handleEdit(sub)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <a
-                        href={`https://${sub.full_domain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(sub.id)}
-                        disabled={isDeleting === sub.id}
-                      >
-                        {isDeleting === sub.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="p-3 md:p-4 border-t border-border flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "ghost"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
 
           {/* Info Card */}
-          <div className="glass-card p-4">
+          <div className="glass-card p-3 md:p-4">
             <h3 className="font-medium text-sm mb-2">Landing Page Options</h3>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>Default:</strong> Shows the CashURL homepage</p>
+              <p><strong>Default:</strong> Shows the M2H homepage</p>
               <p><strong>Redirect:</strong> Redirects visitors to your specified URL</p>
               <p><strong>Custom HTML:</strong> Display your own HTML content</p>
             </div>

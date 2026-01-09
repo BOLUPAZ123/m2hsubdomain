@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Globe,
+  Globe2,
   Users,
   DollarSign,
   Shield,
@@ -12,6 +13,8 @@ import {
   Activity,
   Search,
   RefreshCw,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -22,7 +25,6 @@ import SubdomainManagement from "@/components/admin/SubdomainManagement";
 import DonationManagement from "@/components/admin/DonationManagement";
 import SystemStats from "@/components/admin/SystemStats";
 import DNSChecker from "@/components/subdomain/DNSChecker";
-import logo from "@/assets/logo.png";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -47,6 +49,7 @@ const Admin = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showDNSChecker, setShowDNSChecker] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
@@ -76,24 +79,35 @@ const Admin = () => {
     );
   }
 
+  const tabItems = [
+    { value: "overview", label: "Overview", icon: Activity },
+    { value: "users", label: "Users", icon: Users },
+    { value: "subdomains", label: "Subdomains", icon: Globe },
+    { value: "donations", label: "Donations", icon: DollarSign },
+    { value: "dns", label: "DNS Tools", icon: Search },
+    { value: "settings", label: "Settings", icon: Settings },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between py-3 md:py-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="M2H" className="w-8 h-8 rounded-lg" />
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                  <Globe2 className="w-4 h-4 text-primary-foreground" />
+                </div>
                 <div>
-                  <h1 className="text-lg font-bold flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-primary" />
+                  <h1 className="text-sm md:text-lg font-bold flex items-center gap-2">
+                    <Shield className="h-3 w-3 md:h-4 md:w-4 text-primary" />
                     Admin Panel
                   </h1>
-                  <p className="text-xs text-muted-foreground">M2H SubDomains Management</p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">M2H SubDomains Management</p>
                 </div>
               </div>
             </div>
@@ -102,6 +116,7 @@ const Admin = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowDNSChecker(!showDNSChecker)}
+                className="hidden md:flex"
               >
                 <Search className="h-4 w-4 mr-2" />
                 DNS Checker
@@ -118,46 +133,79 @@ const Admin = () => {
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
             </div>
           </div>
+          
+          {/* Mobile Tab Menu */}
+          {mobileMenuOpen && (
+            <nav className="md:hidden pb-4 space-y-1 animate-fade-in">
+              {tabItems.map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => {
+                    setActiveTab(tab.value);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                    activeTab === tab.value 
+                      ? "bg-secondary text-foreground" 
+                      : "text-muted-foreground hover:bg-secondary/50"
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          )}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8">
         {/* DNS Checker Modal */}
         {showDNSChecker && (
-          <div className="mb-8 glass-card p-6 animate-slide-up">
+          <div className="mb-6 md:mb-8 glass-card p-4 md:p-6 animate-slide-up">
             <DNSChecker onClose={() => setShowDNSChecker(false)} />
           </div>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-8 h-12">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="subdomains" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              Subdomains
-            </TabsTrigger>
-            <TabsTrigger value="donations" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Donations
-            </TabsTrigger>
-            <TabsTrigger value="dns" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              DNS Tools
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
+          {/* Desktop Tabs */}
+          <TabsList className="hidden md:grid w-full grid-cols-6 mb-8 h-12">
+            {tabItems.map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
+
+          {/* Mobile Current Tab Indicator */}
+          <div className="md:hidden mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {tabItems.find(t => t.value === activeTab)?.icon && (
+                <span className="text-primary">
+                  {(() => {
+                    const Icon = tabItems.find(t => t.value === activeTab)?.icon;
+                    return Icon ? <Icon className="h-4 w-4" /> : null;
+                  })()}
+                </span>
+              )}
+              {tabItems.find(t => t.value === activeTab)?.label}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="h-4 w-4 mr-1" />
+              Menu
+            </Button>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview">
