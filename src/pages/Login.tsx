@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Globe, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { signIn, isLoading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,8 +18,16 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Auth logic will be added with Cloud integration
-    setTimeout(() => setIsLoading(false), 1000);
+
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      toast.error(error.message);
+      setIsLoading(false);
+    } else {
+      toast.success("Welcome back!");
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -61,9 +73,6 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                    Forgot password?
-                  </Link>
                 </div>
                 <div className="relative">
                   <Input
@@ -84,7 +93,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>
+              <Button type="submit" variant="hero" className="w-full" disabled={isLoading || authLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>

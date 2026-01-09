@@ -1,1 +1,10 @@
 project_id = "lpzgrlmxlrhluczhruxz"
+
+[functions.cloudflare-dns]
+verify_jwt = false
+
+[functions.cashfree-payment]
+verify_jwt = false
+
+[functions.admin-actions]
+verify_jwt = false
