@@ -85,7 +85,16 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'create': {
-        const { subdomain, recordType = 'CNAME', recordValue, proxied = true } = data
+        const { 
+          subdomain, 
+          recordType = 'CNAME', 
+          recordValue, 
+          proxied = true,
+          landingType = 'default',
+          redirectUrl,
+          htmlContent,
+          htmlTitle,
+        } = data
 
         // Validate subdomain format
         const subdomainRegex = /^[a-z0-9]([a-z0-9-]{1,18}[a-z0-9])?$/
@@ -102,6 +111,26 @@ Deno.serve(async (req) => {
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
+        }
+
+        // Validate landing type
+        if (!['default', 'redirect', 'html'].includes(landingType)) {
+          return new Response(JSON.stringify({ error: 'Invalid landing type.' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Validate redirect URL if landing type is redirect
+        if (landingType === 'redirect' && redirectUrl) {
+          try {
+            new URL(redirectUrl)
+          } catch {
+            return new Response(JSON.stringify({ error: 'Invalid redirect URL.' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
         }
 
         // Default record value if not provided
@@ -175,7 +204,7 @@ Deno.serve(async (req) => {
             name: fullDomain,
             content: finalRecordValue,
             proxied: Boolean(proxied),
-            ttl: proxied ? 1 : 3600, // Auto TTL when proxied
+            ttl: proxied ? 1 : 3600,
           })
           cloudflareRecordId = cfResponse.result?.id
         } catch (cfError: any) {
@@ -186,7 +215,7 @@ Deno.serve(async (req) => {
           })
         }
 
-        // Save to database
+        // Save to database with landing page config
         const { data: newSubdomain, error: dbError } = await supabase
           .from('subdomains')
           .insert({
@@ -198,6 +227,10 @@ Deno.serve(async (req) => {
             proxied: Boolean(proxied),
             cloudflare_record_id: cloudflareRecordId,
             status: 'active',
+            landing_type: landingType,
+            redirect_url: landingType === 'redirect' ? redirectUrl : null,
+            html_content: landingType === 'html' ? htmlContent : null,
+            html_title: landingType === 'html' ? htmlTitle : null,
           })
           .select()
           .single()
@@ -223,7 +256,16 @@ Deno.serve(async (req) => {
       }
 
       case 'update': {
-        const { subdomainId, recordType, recordValue, proxied } = data
+        const { 
+          subdomainId, 
+          recordType, 
+          recordValue, 
+          proxied,
+          landingType,
+          redirectUrl,
+          htmlContent,
+          htmlTitle,
+        } = data
 
         // Get subdomain record
         const { data: subdomain, error: fetchError } = await supabase
@@ -244,6 +286,7 @@ Deno.serve(async (req) => {
         const newRecordType = recordType || subdomain.record_type
         const newRecordValue = recordValue || subdomain.record_value
         const newProxied = proxied !== undefined ? Boolean(proxied) : subdomain.proxied
+        const newLandingType = landingType || subdomain.landing_type || 'default'
 
         // Validate record type
         if (!['A', 'CNAME'].includes(newRecordType)) {
@@ -251,6 +294,27 @@ Deno.serve(async (req) => {
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
+        }
+
+        // Validate landing type
+        if (!['default', 'redirect', 'html'].includes(newLandingType)) {
+          return new Response(JSON.stringify({ error: 'Invalid landing type.' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Validate redirect URL if landing type is redirect
+        const newRedirectUrl = redirectUrl !== undefined ? redirectUrl : subdomain.redirect_url
+        if (newLandingType === 'redirect' && newRedirectUrl) {
+          try {
+            new URL(newRedirectUrl)
+          } catch {
+            return new Response(JSON.stringify({ error: 'Invalid redirect URL.' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
         }
 
         // Validate record value based on type
@@ -271,6 +335,7 @@ Deno.serve(async (req) => {
         }
 
         // Update Cloudflare DNS record
+        let newCloudflareRecordId = subdomain.cloudflare_record_id
         if (subdomain.cloudflare_record_id) {
           try {
             await cloudflareRequest('PATCH', `/dns_records/${subdomain.cloudflare_record_id}`, {
@@ -297,7 +362,7 @@ Deno.serve(async (req) => {
               proxied: newProxied,
               ttl: newProxied ? 1 : 3600,
             })
-            subdomain.cloudflare_record_id = cfResponse.result?.id
+            newCloudflareRecordId = cfResponse.result?.id
           } catch (cfError: any) {
             console.error('Cloudflare create error:', cfError)
             return new Response(JSON.stringify({ error: `Failed to create DNS record: ${cfError.message}` }), { 
@@ -307,15 +372,22 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update database
+        // Update database with landing page config
+        const newHtmlContent = htmlContent !== undefined ? htmlContent : subdomain.html_content
+        const newHtmlTitle = htmlTitle !== undefined ? htmlTitle : subdomain.html_title
+        
         const { data: updatedSubdomain, error: updateError } = await supabase
           .from('subdomains')
           .update({
             record_type: newRecordType,
             record_value: newRecordValue,
             proxied: newProxied,
-            cloudflare_record_id: subdomain.cloudflare_record_id,
+            cloudflare_record_id: newCloudflareRecordId,
             status: 'active',
+            landing_type: newLandingType,
+            redirect_url: newLandingType === 'redirect' ? newRedirectUrl : null,
+            html_content: newLandingType === 'html' ? newHtmlContent : null,
+            html_title: newLandingType === 'html' ? newHtmlTitle : null,
           })
           .eq('id', subdomainId)
           .eq('user_id', userId)

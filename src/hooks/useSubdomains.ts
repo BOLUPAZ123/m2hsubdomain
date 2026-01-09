@@ -11,6 +11,10 @@ interface Subdomain {
   record_value: string;
   proxied: boolean;
   status: "active" | "pending" | "failed" | "disabled";
+  landing_type: "default" | "redirect" | "html";
+  redirect_url: string | null;
+  html_content: string | null;
+  html_title: string | null;
   created_at: string;
 }
 
@@ -40,7 +44,13 @@ export function useSubdomains() {
       setError(fetchError.message);
       toast.error("Failed to load subdomains");
     } else {
-      setSubdomains(data || []);
+      // Map the data to ensure correct types
+      setSubdomains((data || []).map(sub => ({
+        ...sub,
+        record_type: sub.record_type as "A" | "CNAME",
+        status: sub.status as "active" | "pending" | "failed" | "disabled",
+        landing_type: (sub.landing_type as "default" | "redirect" | "html") || "default",
+      })));
     }
     setIsLoading(false);
   }, [session]);
@@ -53,7 +63,11 @@ export function useSubdomains() {
     subdomain: string,
     recordType: "A" | "CNAME" = "CNAME",
     recordValue?: string,
-    proxied: boolean = true
+    proxied: boolean = true,
+    landingType: "default" | "redirect" | "html" = "default",
+    redirectUrl?: string,
+    htmlContent?: string,
+    htmlTitle?: string
   ) => {
     if (!session) {
       toast.error("Please sign in to create a subdomain");
@@ -68,6 +82,10 @@ export function useSubdomains() {
           recordType,
           recordValue,
           proxied,
+          landingType,
+          redirectUrl,
+          htmlContent,
+          htmlTitle,
         },
       });
 
@@ -123,7 +141,11 @@ export function useSubdomains() {
     subdomainId: string,
     recordType?: "A" | "CNAME",
     recordValue?: string,
-    proxied?: boolean
+    proxied?: boolean,
+    landingType?: "default" | "redirect" | "html",
+    redirectUrl?: string,
+    htmlContent?: string,
+    htmlTitle?: string
   ) => {
     if (!session) {
       toast.error("Please sign in");
@@ -138,6 +160,10 @@ export function useSubdomains() {
           recordType,
           recordValue,
           proxied,
+          landingType,
+          redirectUrl,
+          htmlContent,
+          htmlTitle,
         },
       });
 

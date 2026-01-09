@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import SubdomainLandingHandler from "@/components/subdomain/SubdomainLandingHandler";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,30 +22,16 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Check if accessing via a subdomain of cashurl.shop (wildcard DNS)
-const isSubdomainAccess = () => {
-  const hostname = window.location.hostname;
-  // Match any subdomain like user1.cashurl.shop, demo.cashurl.shop, etc.
-  // But exclude www.cashurl.shop and the root cashurl.shop
-  if (hostname === "cashurl.shop" || hostname === "www.cashurl.shop") {
-    return false;
-  }
-  // Check if it ends with .cashurl.shop
-  return hostname.endsWith(".cashurl.shop");
-};
-
 const App = () => {
-  // If accessed via any subdomain (wildcard DNS), show the main website as the "live" page
-  if (isSubdomainAccess()) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <SubdomainLandingHandler>
               <Routes>
-                {/* All subdomain traffic shows the main website */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -60,37 +47,7 @@ const App = () => {
                 <Route path="/donation-history" element={<DonationHistory />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/donate" element={<Donate />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/subdomain-live" element={<SubdomainLive />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/donation-history" element={<DonationHistory />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            </SubdomainLandingHandler>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

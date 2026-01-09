@@ -112,10 +112,14 @@ export type Database = {
           cloudflare_record_id: string | null
           created_at: string
           full_domain: string
+          html_content: string | null
+          html_title: string | null
           id: string
+          landing_type: string
           proxied: boolean
           record_type: Database["public"]["Enums"]["dns_record_type"]
           record_value: string
+          redirect_url: string | null
           status: Database["public"]["Enums"]["subdomain_status"]
           subdomain: string
           updated_at: string
@@ -125,10 +129,14 @@ export type Database = {
           cloudflare_record_id?: string | null
           created_at?: string
           full_domain: string
+          html_content?: string | null
+          html_title?: string | null
           id?: string
+          landing_type?: string
           proxied?: boolean
           record_type: Database["public"]["Enums"]["dns_record_type"]
           record_value: string
+          redirect_url?: string | null
           status?: Database["public"]["Enums"]["subdomain_status"]
           subdomain: string
           updated_at?: string
@@ -138,10 +146,14 @@ export type Database = {
           cloudflare_record_id?: string | null
           created_at?: string
           full_domain?: string
+          html_content?: string | null
+          html_title?: string | null
           id?: string
+          landing_type?: string
           proxied?: boolean
           record_type?: Database["public"]["Enums"]["dns_record_type"]
           record_value?: string
+          redirect_url?: string | null
           status?: Database["public"]["Enums"]["subdomain_status"]
           subdomain?: string
           updated_at?: string
