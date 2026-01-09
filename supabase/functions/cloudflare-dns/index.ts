@@ -5,6 +5,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const DOMAIN = 'cashurl.shop'
+
+// Cloudflare API helper
+async function cloudflareRequest(method: string, endpoint: string, body?: object) {
+  const CF_API_TOKEN = Deno.env.get('CF_API_TOKEN')
+  const CF_ZONE_ID = Deno.env.get('CF_ZONE_ID')
+  
+  if (!CF_API_TOKEN || !CF_ZONE_ID) {
+    throw new Error('Cloudflare credentials not configured')
+  }
+
+  const url = `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}${endpoint}`
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${CF_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  const data = await response.json()
+  
+  if (!data.success) {
+    console.error('Cloudflare API error:', data.errors)
+    throw new Error(data.errors?.[0]?.message || 'Cloudflare API error')
+  }
+  
+  return data
+}
+
+// Validate IP address format
+function isValidIPv4(ip: string): boolean {
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+  if (!ipv4Regex.test(ip)) return false
+  const parts = ip.split('.').map(Number)
+  return parts.every(p => p >= 0 && p <= 255)
+}
+
+// Validate hostname format
+function isValidHostname(hostname: string): boolean {
+  const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+  return hostnameRegex.test(hostname) && hostname.length <= 253
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -37,19 +82,46 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.user.id
     const { action, ...data } = await req.json()
-    const DOMAIN = 'cashurl.shop'
 
     switch (action) {
       case 'create': {
-        const { subdomain } = data
+        const { subdomain, recordType = 'CNAME', recordValue, proxied = true } = data
 
         // Validate subdomain format
         const subdomainRegex = /^[a-z0-9]([a-z0-9-]{1,18}[a-z0-9])?$/
         if (!subdomainRegex.test(subdomain)) {
-          return new Response(JSON.stringify({ error: 'Invalid subdomain format' }), { 
+          return new Response(JSON.stringify({ error: 'Invalid subdomain format. Use 3-20 lowercase letters, numbers, and hyphens.' }), { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
+        }
+
+        // Validate record type
+        if (!['A', 'CNAME'].includes(recordType)) {
+          return new Response(JSON.stringify({ error: 'Invalid record type. Use A or CNAME.' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Default record value if not provided
+        const finalRecordValue = recordValue || `www.${DOMAIN}`
+
+        // Validate record value based on type
+        if (recordType === 'A') {
+          if (!isValidIPv4(finalRecordValue)) {
+            return new Response(JSON.stringify({ error: 'Invalid IP address for A record' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        } else if (recordType === 'CNAME') {
+          if (!isValidHostname(finalRecordValue)) {
+            return new Response(JSON.stringify({ error: 'Invalid hostname for CNAME record' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
         }
 
         // Check if subdomain is reserved
@@ -80,33 +152,51 @@ Deno.serve(async (req) => {
           })
         }
 
-        // Rate limiting: check user's subdomain count in last hour
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+        // Rate limiting: check user's subdomain count
         const { count } = await supabase
           .from('subdomains')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', oneHourAgo)
 
         if (count && count >= 5) {
-          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 5 subdomains per hour.' }), { 
+          return new Response(JSON.stringify({ error: 'Maximum 5 subdomains allowed per user' }), { 
             status: 429, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
 
-        // With wildcard DNS, we only save to database - no Cloudflare API call needed
-        // All subdomains automatically route via *.cashurl.shop -> cname.vercel-dns.com
+        // Create DNS record in Cloudflare
+        const fullDomain = `${subdomain}.${DOMAIN}`
+        let cloudflareRecordId = null
+
+        try {
+          const cfResponse = await cloudflareRequest('POST', '/dns_records', {
+            type: recordType,
+            name: fullDomain,
+            content: finalRecordValue,
+            proxied: Boolean(proxied),
+            ttl: proxied ? 1 : 3600, // Auto TTL when proxied
+          })
+          cloudflareRecordId = cfResponse.result?.id
+        } catch (cfError: any) {
+          console.error('Cloudflare error:', cfError)
+          return new Response(JSON.stringify({ error: `Failed to create DNS record: ${cfError.message}` }), { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Save to database
         const { data: newSubdomain, error: dbError } = await supabase
           .from('subdomains')
           .insert({
             user_id: userId,
             subdomain,
-            full_domain: `${subdomain}.${DOMAIN}`,
-            record_type: 'CNAME',
-            record_value: 'cname.vercel-dns.com',
-            proxied: false,
-            cloudflare_record_id: null, // No individual record - using wildcard
+            full_domain: fullDomain,
+            record_type: recordType,
+            record_value: finalRecordValue,
+            proxied: Boolean(proxied),
+            cloudflare_record_id: cloudflareRecordId,
             status: 'active',
           })
           .select()
@@ -114,6 +204,12 @@ Deno.serve(async (req) => {
 
         if (dbError) {
           console.error('Database error:', dbError)
+          // Try to rollback Cloudflare record
+          if (cloudflareRecordId) {
+            try {
+              await cloudflareRequest('DELETE', `/dns_records/${cloudflareRecordId}`)
+            } catch {}
+          }
           return new Response(JSON.stringify({ error: 'Failed to save subdomain' }), { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -121,6 +217,119 @@ Deno.serve(async (req) => {
         }
 
         return new Response(JSON.stringify({ success: true, subdomain: newSubdomain }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'update': {
+        const { subdomainId, recordType, recordValue, proxied } = data
+
+        // Get subdomain record
+        const { data: subdomain, error: fetchError } = await supabase
+          .from('subdomains')
+          .select('*')
+          .eq('id', subdomainId)
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (fetchError || !subdomain) {
+          return new Response(JSON.stringify({ error: 'Subdomain not found' }), { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Determine new values
+        const newRecordType = recordType || subdomain.record_type
+        const newRecordValue = recordValue || subdomain.record_value
+        const newProxied = proxied !== undefined ? Boolean(proxied) : subdomain.proxied
+
+        // Validate record type
+        if (!['A', 'CNAME'].includes(newRecordType)) {
+          return new Response(JSON.stringify({ error: 'Invalid record type. Use A or CNAME.' }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Validate record value based on type
+        if (newRecordType === 'A') {
+          if (!isValidIPv4(newRecordValue)) {
+            return new Response(JSON.stringify({ error: 'Invalid IP address for A record' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        } else if (newRecordType === 'CNAME') {
+          if (!isValidHostname(newRecordValue)) {
+            return new Response(JSON.stringify({ error: 'Invalid hostname for CNAME record' }), { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        }
+
+        // Update Cloudflare DNS record
+        if (subdomain.cloudflare_record_id) {
+          try {
+            await cloudflareRequest('PATCH', `/dns_records/${subdomain.cloudflare_record_id}`, {
+              type: newRecordType,
+              name: subdomain.full_domain,
+              content: newRecordValue,
+              proxied: newProxied,
+              ttl: newProxied ? 1 : 3600,
+            })
+          } catch (cfError: any) {
+            console.error('Cloudflare update error:', cfError)
+            return new Response(JSON.stringify({ error: `Failed to update DNS record: ${cfError.message}` }), { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        } else {
+          // Create new record if none exists
+          try {
+            const cfResponse = await cloudflareRequest('POST', '/dns_records', {
+              type: newRecordType,
+              name: subdomain.full_domain,
+              content: newRecordValue,
+              proxied: newProxied,
+              ttl: newProxied ? 1 : 3600,
+            })
+            subdomain.cloudflare_record_id = cfResponse.result?.id
+          } catch (cfError: any) {
+            console.error('Cloudflare create error:', cfError)
+            return new Response(JSON.stringify({ error: `Failed to create DNS record: ${cfError.message}` }), { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+        }
+
+        // Update database
+        const { data: updatedSubdomain, error: updateError } = await supabase
+          .from('subdomains')
+          .update({
+            record_type: newRecordType,
+            record_value: newRecordValue,
+            proxied: newProxied,
+            cloudflare_record_id: subdomain.cloudflare_record_id,
+            status: 'active',
+          })
+          .eq('id', subdomainId)
+          .eq('user_id', userId)
+          .select()
+          .single()
+
+        if (updateError) {
+          return new Response(JSON.stringify({ error: 'Failed to update subdomain' }), { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+
+        return new Response(JSON.stringify({ success: true, subdomain: updatedSubdomain }), { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
@@ -144,7 +353,15 @@ Deno.serve(async (req) => {
           })
         }
 
-        // With wildcard DNS, just delete from database - no Cloudflare cleanup needed
+        // Delete from Cloudflare
+        if (subdomain.cloudflare_record_id) {
+          try {
+            await cloudflareRequest('DELETE', `/dns_records/${subdomain.cloudflare_record_id}`)
+          } catch (cfError: any) {
+            console.error('Cloudflare delete error:', cfError)
+            // Continue anyway - record might already be deleted
+          }
+        }
 
         // Delete from database
         const { error: deleteError } = await supabase
@@ -161,36 +378,6 @@ Deno.serve(async (req) => {
         }
 
         return new Response(JSON.stringify({ success: true }), { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
-
-      case 'update': {
-        const { subdomainId } = data
-
-        // Get subdomain record
-        const { data: subdomain, error: fetchError } = await supabase
-          .from('subdomains')
-          .select('*')
-          .eq('id', subdomainId)
-          .eq('user_id', userId)
-          .maybeSingle()
-
-        if (fetchError || !subdomain) {
-          return new Response(JSON.stringify({ error: 'Subdomain not found' }), { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
-        }
-
-        // With wildcard DNS architecture, individual subdomain DNS updates are not supported
-        // All subdomains route to the same deployment
-        return new Response(JSON.stringify({ 
-          success: true, 
-          subdomain,
-          message: 'Wildcard DNS is active - all subdomains route to the main deployment'
-        }), { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })

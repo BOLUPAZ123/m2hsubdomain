@@ -19,19 +19,37 @@ import {
   Settings,
   ChevronRight,
   X,
+  Edit,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubdomains } from "@/hooks/useSubdomains";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isLoading: authLoading, signOut } = useAuth();
-  const { subdomains, isLoading, createSubdomain, deleteSubdomain } = useSubdomains();
+  const { subdomains, isLoading, createSubdomain, deleteSubdomain, updateSubdomain } = useSubdomains();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingSubdomain, setEditingSubdomain] = useState<any>(null);
+  
+  // Create form state
   const [subdomain, setSubdomain] = useState("");
+  const [recordType, setRecordType] = useState<"A" | "CNAME">("CNAME");
+  const [recordValue, setRecordValue] = useState("");
+  const [proxied, setProxied] = useState(true);
+  
   const [copied, setCopied] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,23 +67,54 @@ const Dashboard = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check subdomain limit (5 total)
     if (subdomains.length >= 5) {
       toast.error("You've reached the maximum limit of 5 subdomains");
       return;
     }
 
     setIsCreating(true);
-
-    // With wildcard DNS, we just save to database - no DNS record creation needed
-    const result = await createSubdomain(subdomain);
+    const result = await createSubdomain(
+      subdomain,
+      recordType,
+      recordValue || undefined,
+      proxied
+    );
 
     if (result.success) {
       setShowCreateForm(false);
       setSubdomain("");
-      toast.success(`${subdomain}.cashurl.shop is now live!`);
+      setRecordType("CNAME");
+      setRecordValue("");
+      setProxied(true);
     }
     setIsCreating(false);
+  };
+
+  const handleEdit = (sub: any) => {
+    setEditingSubdomain(sub);
+    setRecordType(sub.record_type);
+    setRecordValue(sub.record_value);
+    setProxied(sub.proxied);
+    setShowEditForm(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubdomain) return;
+
+    setIsUpdating(true);
+    const result = await updateSubdomain(
+      editingSubdomain.id,
+      recordType,
+      recordValue,
+      proxied
+    );
+
+    if (result.success) {
+      setShowEditForm(false);
+      setEditingSubdomain(null);
+    }
+    setIsUpdating(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -238,11 +287,42 @@ const Dashboard = () => {
                     </p>
                   </div>
 
-                  <div className="glass-card p-3 text-sm">
-                    <p className="text-muted-foreground">
-                      Your subdomain will be instantly live and display the CashURL homepage. 
-                      All subdomains are powered by wildcard DNS.
+                  <div className="space-y-2">
+                    <Label className="text-sm">Record Type</Label>
+                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CNAME">CNAME (Domain/Hostname)</SelectItem>
+                        <SelectItem value="A">A (IP Address)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      {recordType === "A" ? "IP Address" : "Target Domain"}
+                    </Label>
+                    <Input
+                      placeholder={recordType === "A" ? "192.168.1.1" : "www.cashurl.shop"}
+                      value={recordValue}
+                      onChange={(e) => setRecordValue(e.target.value)}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {recordType === "A" 
+                        ? "Enter the IP address to point to"
+                        : "Leave empty to use default (www.cashurl.shop)"}
                     </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm">Cloudflare Proxy</Label>
+                      <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                    </div>
+                    <Switch checked={proxied} onCheckedChange={setProxied} />
                   </div>
 
                   <div className="flex gap-3 pt-2">
@@ -262,6 +342,80 @@ const Dashboard = () => {
                         </>
                       ) : (
                         "Create"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Form Modal */}
+          {showEditForm && editingSubdomain && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+              <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold">Edit Subdomain</h2>
+                    <p className="text-sm text-muted-foreground font-mono">{editingSubdomain.full_domain}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setShowEditForm(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleUpdate} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Record Type</Label>
+                    <Select value={recordType} onValueChange={(v) => setRecordType(v as "A" | "CNAME")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CNAME">CNAME (Domain/Hostname)</SelectItem>
+                        <SelectItem value="A">A (IP Address)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      {recordType === "A" ? "IP Address" : "Target Domain"}
+                    </Label>
+                    <Input
+                      placeholder={recordType === "A" ? "192.168.1.1" : "example.com"}
+                      value={recordValue}
+                      onChange={(e) => setRecordValue(e.target.value)}
+                      className="font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm">Cloudflare Proxy</Label>
+                      <p className="text-xs text-muted-foreground">Enable CDN & DDoS protection</p>
+                    </div>
+                    <Switch checked={proxied} onCheckedChange={setProxied} />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => setShowEditForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="hero"
+                      className="flex-1"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Changes"
                       )}
                     </Button>
                   </div>
@@ -313,9 +467,12 @@ const Dashboard = () => {
                           </button>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="font-mono">Wildcard DNS</span>
+                          <span className="font-mono">{sub.record_type}</span>
                           <ChevronRight className="h-3 w-3" />
-                          <span className="font-mono truncate max-w-[150px]">cname.vercel-dns.com</span>
+                          <span className="font-mono truncate max-w-[150px]">{sub.record_value}</span>
+                          {sub.proxied && (
+                            <span className="text-success">• Proxied</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -323,6 +480,14 @@ const Dashboard = () => {
                       <span className={`px-2 py-0.5 rounded text-xs border capitalize ${getStatusBadge(sub.status)}`}>
                         {sub.status}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => handleEdit(sub)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <a
                         href={`https://${sub.full_domain}`}
                         target="_blank"
@@ -353,12 +518,12 @@ const Dashboard = () => {
 
           {/* Info Card */}
           <div className="glass-card p-4">
-            <h3 className="font-medium text-sm mb-2">How it works</h3>
-            <p className="text-xs text-muted-foreground">
-              All subdomains are powered by wildcard DNS (*.cashurl.shop). When you create a subdomain, 
-              it's instantly live and displays the CashURL homepage. This architecture allows unlimited 
-              free subdomains without per-user DNS configuration.
-            </p>
+            <h3 className="font-medium text-sm mb-2">DNS Record Types</h3>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>CNAME:</strong> Point to another domain (e.g., your-site.vercel.app)</p>
+              <p><strong>A Record:</strong> Point to an IP address (e.g., 192.168.1.1)</p>
+              <p><strong>Proxy:</strong> Enable Cloudflare CDN and DDoS protection</p>
+            </div>
           </div>
         </div>
       </main>
