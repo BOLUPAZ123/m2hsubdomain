@@ -150,6 +150,52 @@ export function useAdmin() {
     }
   };
 
+  const bulkDisableSubdomains = async (subdomainIds: string[]) => {
+    try {
+      await callAdminAction("bulk-disable-subdomains", { subdomainIds });
+      await fetchSubdomains();
+    } catch (err: any) {
+      toast.error(err.message);
+      throw err;
+    }
+  };
+
+  const bulkDeleteSubdomains = async (subdomainIds: string[]) => {
+    try {
+      await callAdminAction("bulk-delete-subdomains", { subdomainIds });
+      await fetchSubdomains();
+    } catch (err: any) {
+      toast.error(err.message);
+      throw err;
+    }
+  };
+
+  const exportUsers = async () => {
+    try {
+      const data = await callAdminAction("export-users");
+      if (data?.users) {
+        const headers = ["Name", "Email", "Role", "Created At"];
+        const rows = data.users.map((u: any) => [
+          u.name,
+          u.email,
+          u.role,
+          new Date(u.created_at).toLocaleString(),
+        ]);
+        const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `users-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Users CSV exported");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   return {
     stats,
     users,
@@ -163,5 +209,8 @@ export function useAdmin() {
     disableSubdomain,
     deleteSubdomain,
     setUserRole,
+    bulkDisableSubdomains,
+    bulkDeleteSubdomains,
+    exportUsers,
   };
 }

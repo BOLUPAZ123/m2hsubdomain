@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Users, Search, Loader2, Shield, ShieldOff, 
-  MoreVertical, Mail, Globe, Calendar
+  MoreVertical, Mail, Calendar, Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,9 +26,10 @@ interface UserManagementProps {
   users: User[];
   isLoading: boolean;
   onSetRole: (userId: string, role: "admin" | "user") => void;
+  onExport?: () => void;
 }
 
-const UserManagement = ({ users, isLoading, onSetRole }: UserManagementProps) => {
+const UserManagement = ({ users, isLoading, onSetRole, onExport }: UserManagementProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredUsers = users.filter(user => 
@@ -41,15 +42,23 @@ const UserManagement = ({ users, isLoading, onSetRole }: UserManagementProps) =>
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search users by name or email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search and Export */}
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {onExport && (
+          <Button variant="outline" onClick={onExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        )}
       </div>
 
       {/* Users List */}

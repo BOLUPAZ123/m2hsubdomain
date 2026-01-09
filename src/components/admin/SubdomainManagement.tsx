@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Globe, Search, Loader2, Ban, Trash2, 
-  ExternalLink, Check, AlertTriangle, Clock
+  ExternalLink, Check, AlertTriangle, Clock, Download
 } from "lucide-react";
 import {
   Select,
@@ -23,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface Subdomain {
   id: string;
@@ -41,6 +43,8 @@ interface SubdomainManagementProps {
   isLoading: boolean;
   onDisable: (id: string) => void;
   onDelete: (id: string) => void;
+  onBulkDisable?: (ids: string[]) => Promise<void>;
+  onBulkDelete?: (ids: string[]) => Promise<void>;
   onFilterChange?: (status: string) => void;
 }
 
@@ -49,10 +53,14 @@ const SubdomainManagement = ({
   isLoading, 
   onDisable, 
   onDelete,
+  onBulkDisable,
+  onBulkDelete,
   onFilterChange 
 }: SubdomainManagementProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const filteredSubdomains = subdomains.filter(sub => {
     const matchesSearch = 
@@ -89,14 +97,86 @@ const SubdomainManagement = ({
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
+    setSelectedIds(new Set());
     onFilterChange?.(value === "all" ? "" : value);
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredSubdomains.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredSubdomains.map(s => s.id)));
+    }
+  };
+
+  const handleBulkDisable = async () => {
+    if (!onBulkDisable || selectedIds.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      await onBulkDisable(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      toast.success(`Disabled ${selectedIds.size} subdomains`);
+    } catch {
+      toast.error("Failed to disable subdomains");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!onBulkDelete || selectedIds.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      await onBulkDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      toast.success(`Deleted ${selectedIds.size} subdomains`);
+    } catch {
+      toast.error("Failed to delete subdomains");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = ["Subdomain", "Full Domain", "Record Type", "Record Value", "Status", "Proxied", "Owner", "Email", "Created At"];
+    const rows = filteredSubdomains.map(s => [
+      s.subdomain,
+      s.full_domain,
+      s.record_type,
+      s.record_value,
+      s.status,
+      s.proxied ? "Yes" : "No",
+      s.profiles?.name || "",
+      s.profiles?.email || "",
+      new Date(s.created_at).toLocaleString(),
+    ]);
+    
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `subdomains-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported successfully");
   };
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-4">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by domain, owner name or email..."
@@ -117,12 +197,70 @@ const SubdomainManagement = ({
             <SelectItem value="disabled">Disabled</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={exportToCSV}>
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" disabled={bulkActionLoading}>
+                <Ban className="h-4 w-4 mr-1" />
+                Disable All
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Disable {selectedIds.size} Subdomains?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will disable all selected subdomains and remove their DNS records from Cloudflare.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDisable}>Disable All</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={bulkActionLoading}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete All
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {selectedIds.size} Subdomains?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all selected subdomains and their DNS records. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">Delete All</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+            Clear Selection
+          </Button>
+        </div>
+      )}
 
       {/* Subdomains List */}
       <div className="glass-card overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={filteredSubdomains.length > 0 && selectedIds.size === filteredSubdomains.length}
+              onCheckedChange={toggleSelectAll}
+            />
             <Globe className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-semibold">All Subdomains ({filteredSubdomains.length})</h2>
           </div>
@@ -141,7 +279,11 @@ const SubdomainManagement = ({
             {filteredSubdomains.map((sub) => {
               const status = getStatusBadge(sub.status);
               return (
-                <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors">
+                <div key={sub.id} className="p-4 flex items-center gap-4 hover:bg-secondary/30 transition-colors">
+                  <Checkbox
+                    checked={selectedIds.has(sub.id)}
+                    onCheckedChange={() => toggleSelection(sub.id)}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium font-mono truncate">{sub.full_domain}</span>
