@@ -1,73 +1,222 @@
-# Welcome to your Lovable project
+# 🚀 m2hsubdomain
 
-## Project info
+<div align="center">
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+<!-- Optional: Add project logo here -->
 
-## How can I edit this code?
+**A modern subdomain management web application built with React, Vite, Tailwind CSS, and Supabase.**  
+Designed for free subdomain services, multi-tenant SaaS platforms, and developer-focused tools.
 
-There are several ways of editing your application.
+[![GitHub stars](https://img.shields.io/github/stars/prince-m2hgamerz/m2hsubdomain?style=for-the-badge)](https://github.com/prince-m2hgamerz/m2hsubdomain/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/prince-m2hgamerz/m2hsubdomain?style=for-the-badge)](https://github.com/prince-m2hgamerz/m2hsubdomain/network)
+[![GitHub issues](https://img.shields.io/github/issues/prince-m2hgamerz/m2hsubdomain?style=for-the-badge)](https://github.com/prince-m2hgamerz/m2hsubdomain/issues)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-**Use Lovable**
+🌐 **Live Demo:** https://domain.m2hgamerz.site/ 
+📘 **Documentation:** Coming soon
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+</div>
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 📖 Overview
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**m2hsubdomain** is a frontend web application built to manage and display subdomains in a scalable and user-friendly way.  
+It is especially suited for platforms where all subdomains resolve to a single application using wildcard routing.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+The project uses **Supabase** as a Backend-as-a-Service (BaaS) for authentication, database management, and future real-time features, while the frontend is powered by a fast and modern React + Vite setup.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## ✨ Features
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- 🎯 **Subdomain Management UI**  
+  Create, list, update, and remove subdomains from a dashboard
 
-# Step 3: Install the necessary dependencies.
-npm i
+- 🔐 **Authentication System**  
+  Secure login and registration using Supabase Auth
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+- ⚡ **Fast Development Experience**  
+  Vite-powered hot reload and optimized builds
+
+- 💅 **Modern & Responsive UI**  
+  Built with React and Tailwind CSS (Shadcn UI ready)
+
+- 💾 **Cloud Database**  
+  PostgreSQL database via Supabase
+
+- ⚙️ **Environment-Based Configuration**  
+  Simple and secure `.env` configuration
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- PostCSS
+- ESLint
+
+### Backend (BaaS)
+- Supabase (Auth, Database, Realtime)
+
+### Database
+- PostgreSQL (via Supabase)
+
+### Tooling
+- npm / Bun
+- GitHub
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+Make sure you have the following installed:
+- **Node.js** v18 or higher (LTS recommended)
+- **npm** (comes with Node.js)
+- An active **Supabase project**
+
+---
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/prince-m2hgamerz/m2hsubdomain.git
+cd m2hsubdomain
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open your browser and visit:
+```
+http://localhost:5173
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## ⚙️ Environment Configuration
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Create a `.env` file in the project root:
 
-## What technologies are used for this project?
+```env
+VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_PUBLIC_KEY
+```
 
-This project is built with:
+You can find these values in:
+**Supabase Dashboard → Project Settings → API**
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 📁 Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```
+m2hsubdomain/
+├── public/                 # Static assets
+├── src/
+│   ├── assets/             # Images & icons
+│   ├── components/         # Reusable UI components
+│   ├── lib/                # Utilities & Supabase client
+│   ├── pages/              # Application pages
+│   ├── App.tsx             # Root component
+│   ├── main.tsx            # Entry point
+│   └── index.css           # Global styles
+├── supabase/               # Supabase configs & migrations
+├── .env                    # Environment variables
+├── components.json         # UI component config
+├── package.json            # Dependencies & scripts
+├── tailwind.config.ts      # Tailwind CSS config
+├── vite.config.ts          # Vite config
+└── tsconfig*.json          # TypeScript configs
+```
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 🔧 Development Scripts
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Command | Description |
+|-------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint checks |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 🚀 Deployment
+
+To create a production build:
+
+```bash
+npm run build
+```
+
+The output will be generated in the `dist/` directory.
+
+You can deploy this folder to:
+- Vercel
+- Netlify
+- Cloudflare Pages
+- Any static hosting provider
+
+---
+
+## 🧪 Testing
+
+Currently, no automated tests are configured.  
+Testing frameworks such as **Vitest** or **Jest** can be added later.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome and appreciated!
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run `npm run lint`
+5. Commit and push
+6. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- React for UI development
+- Vite for fast builds
+- Tailwind CSS for styling
+- Supabase for backend services
+- ESLint for code quality
+
+---
+
+## 📞 Support & Contact
+
+- 🐛 Issues: https://github.com/prince-m2hgamerz/m2hsubdomain/issues
+- 👤 Author: https://github.com/prince-m2hgamerz
+
+---
+
+<div align="center">
+
+⭐ **If this project helps you, please give it a star!**  
+Made with ❤️ by **Prince (M2H Web Solution)**
+
+</div>
